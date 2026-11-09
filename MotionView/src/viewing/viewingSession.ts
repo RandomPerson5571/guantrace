@@ -146,6 +146,12 @@ export class ViewingSession implements ViewingDataReader {
     this.events.dataChanged.emit({ kind: "cleared" });
   }
 
+  clearWatches(): void {
+    this.#watches.length = 0;
+    this.#watchVisibility.clear();
+    this.events.dataChanged.emit({ kind: "watches-cleared" });
+  }
+
   setWatchVisibility(watch: WatchEntryView, visible: boolean): void {
     const key = watchVisibilityKey(watch);
     const nextVisible = !!visible;

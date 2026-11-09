@@ -68,3 +68,7 @@
 .sysidMappingFields select, .sysidMappingFields input { min-width: 0; }
 .sysidPanel[hidden], .sysidPanel [hidden] { display: none !important; }
 #sysidMessage:empty, #sysidHealth:empty, #sysidMetrics:empty { display: none; }
+
+#ekfPanel .sysidPlot { height: clamp(220px, 40dvh, 360px); }
+#ekfPanel summary { cursor: pointer; font-weight: 600; }
+#ekfStream { align-self: flex-start; }

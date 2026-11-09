@@ -1,3 +1,4 @@
+import { parseDescriptor } from "./signalDescriptor";
 import { emitTo } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { invokeCommand, isTauriRuntime } from "../tauri/commands";
@@ -6,7 +7,7 @@ import { requiredElement } from "../dom/elements";
 import type { LiveFeature } from "../live/LiveFeature";
 import type { DeviceReading } from "./deviceTelemetry";
 import {
-  deviceMetrics, graphDevice, graphPrefix, graphRequest, graphUpdate, kinds, maxSamples,
+  deviceMetrics, graphDevice, graphPrefix, graphRequest, graphUpdate, kinds, appendGraphPoint,
   type GraphRequest, type GraphUpdate, type Metric, type Point,
 } from "./graphTelemetry";
 import "./brain.css";
@@ -38,6 +39,7 @@ export class BrainView {
   #timer: number | undefined;
   #resetOnReading = false;
   #robotTimeMs = 0;
+  readonly #descriptors = new Map<string, HTMLTableRowElement>();
 
   constructor(private readonly live: LiveFeature) {
     this.#ready = this.#native
@@ -54,9 +56,33 @@ export class BrainView {
       if (live.stream.streaming) void live.stop();
       else void live.start();
     });
+    live.events.diagnosticRecord.subscribe(line => {
+      const descriptor = parseDescriptor(line);
+      if (!descriptor) {
+        const match = /^GT1,\d+,\d+,([\w.-]+),(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)$/.exec(line);
+        const row = match && this.#descriptors.get(match[1]);
+        if (row && Number.isFinite(Number(match![2]))) row.cells[5].textContent = match![2];
+        return;
+      }
+      this.receive({ kind: descriptor.kind, port: descriptor.port, metric: "present", timeMs: descriptor.time, value: 1 });
+      const table = requiredElement("brainSignals", HTMLElement);
+      let row = this.#descriptors.get(descriptor.topic);
+      if (!row) {
+        if (this.#descriptors.size >= 512) return;
+        row = document.createElement("tr");
+        this.#descriptors.set(descriptor.topic, row); table.append(row);
+      }
+      row.replaceChildren(...[descriptor.topic, `${descriptor.kind} / ${descriptor.port}`, descriptor.type, descriptor.unit, String(descriptor.period), row.cells[5]?.textContent || "—"].map(value => {
+        const cell = document.createElement("td"); cell.textContent = value; return cell;
+      }));
+    });
     live.events.deviceReading.subscribe(reading => this.receive(reading));
     live.events.streamChanged.subscribe(({ current }) => {
-      if (current === "starting") this.#resetOnReading = true;
+      if (current === "starting") {
+        this.#resetOnReading = true;
+        this.#descriptors.clear();
+        requiredElement("brainSignals", HTMLElement).replaceChildren();
+      }
       this.render();
     });
     void this.#ready.catch(error => console.warn("Device graph events unavailable:", error));
@@ -78,6 +104,8 @@ export class BrainView {
     if (this.#resetOnReading) {
       this.#resetOnReading = false;
       this.#devices.clear();
+      this.#descriptors.clear();
+      requiredElement("brainSignals", HTMLElement).replaceChildren();
       this.#list.replaceChildren();
       this.#session = crypto.randomUUID();
       this.#robotTimeMs = 0;
@@ -101,8 +129,7 @@ export class BrainView {
     }
     if (time / 1000 <= (series.points.at(-1)?.x ?? -Infinity)) return;
     series.receivedAt = now;
-    series.points.push({ x: time / 1000, y: value });
-    if (series.points.length > maxSamples) series.points.shift();
+    appendGraphPoint(series.points, { x: time / 1000, y: value });
   }
 
   private addDevice(key: string, kind: string, port: number): Device {

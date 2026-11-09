@@ -49,6 +49,11 @@ export class ViewingFeature implements ViewingDataSink {
     this.#session.clear();
   }
 
+  clearWatches(): void {
+    this.navigation.clearDetails();
+    this.#session.clearWatches();
+  }
+
   setWatchVisibility(watch: Readonly<WatchEntry>, visible: boolean): void {
     this.#session.setWatchVisibility(watch, visible);
   }

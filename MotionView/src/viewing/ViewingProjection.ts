@@ -55,7 +55,7 @@ export class ViewingProjection {
     private readonly events: ViewingEvents,
   ) {
     events.dataChanged.subscribe((change) => {
-      if (change.kind === "replaced") this.rebuildWatchMarkers();
+      if (change.kind === "replaced" || change.kind === "watches-cleared") this.rebuildWatchMarkers();
       else if (change.kind === "appended" && change.result.watchesAdded > 0) {
         this.appendWatchMarkers(change.result.insertedWatches);
       } else if (change.kind === "cleared") this.clear();

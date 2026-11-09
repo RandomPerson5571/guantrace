@@ -48,6 +48,8 @@ try {
   const fit = fitChannel(runs, "drive-left");
   for (const key of Object.keys(gains)) assert.ok(Math.abs(fit.gains[key] - gains[key]) < 0.04, key);
   assert.ok(fit.simulation.rSquared > 0.99);
+  assert.ok(fit.voltage.rSquared > 0.99);
+  assert.ok(fit.voltage.rmse < 0.1);
 
   const records = [];
   const serialRecords = [];

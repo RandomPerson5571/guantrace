@@ -102,6 +102,7 @@ export type ViewingDataChangedEvent =
       readonly result: Readonly<ViewingAppendResult>;
     }
   | { readonly kind: "cleared" }
+  | { readonly kind: "watches-cleared" }
   | {
       readonly kind: "watch-visibility";
       readonly key: string;

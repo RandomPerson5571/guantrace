@@ -157,6 +157,7 @@ export interface Fit {
   unit: Unit;
   diagnostics: Diagnostic[];
   acceleration: ErrorMetrics | null;
+  voltage: ErrorMetrics | null;
   simulation: ErrorMetrics | null;
   warnings: string[];
 }
@@ -180,6 +181,7 @@ export function fitChannel(runs: Run[], channel: string): Fit {
     row.residual = row.sample.voltage - voltage;
     return [row.acceleration, b0 * row.sample.voltage + b1 * row.velocity + b2 * Math.sign(row.velocity)];
   }));
+  const voltage = errorMetrics(diagnostics.map(row => [row.sample.voltage, row.sample.voltage - row.residual]));
   const simulations = segments.map(rows => simulate(rows, gains));
   const simulation = errorMetrics(simulations.flatMap(points => points.slice(1).flatMap(point =>
     point.simulated === null ? [] : [[point.sample.velocity, point.simulated] as const])));
@@ -189,7 +191,7 @@ export function fitChannel(runs: Run[], channel: string): Fit {
     warnings.push("Low or unavailable acceleration R². Inspect noise, timing and kA.");
   if (simulation?.rSquared != null && simulation.rSquared < 0.95)
     warnings.push("Simulated velocity R² is below 0.95. Inspect the velocity overlay and voltage residuals.");
-  return { gains, unit: diagnostics[0].sample.unit, diagnostics, acceleration, simulation, warnings };
+  return { gains, unit: diagnostics[0].sample.unit, diagnostics, acceleration, voltage, simulation, warnings };
 }
 
 // Ignore display metadata and run IDs so a renamed or re-exported fit run is still recognized.

@@ -35,6 +35,7 @@ export class TopBarDom {
   readonly viewingModeButton: HTMLButtonElement;
   readonly brainModeButton: HTMLButtonElement;
   readonly sysIdModeButton: HTMLButtonElement;
+  readonly ekfModeButton: HTMLButtonElement;
   readonly fieldWorkspace: HTMLElement;
   readonly speedSelect: HTMLSelectElement;
   readonly fieldSelect: HTMLSelectElement;
@@ -58,6 +59,7 @@ export class TopBarDom {
     this.viewingModeButton = requiredElement(document, "modeViewing");
     this.brainModeButton = requiredElement(document, "modeBrain");
     this.sysIdModeButton = requiredElement(document, "modeSysId");
+    this.ekfModeButton = requiredElement(document, "modeEkf");
     this.fieldWorkspace = requiredElement(document, "fieldWorkspace");
     this.speedSelect = requiredElement(document, "speedSelect");
     this.fieldSelect = requiredElement(document, "fieldSelect");

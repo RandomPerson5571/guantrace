@@ -70,6 +70,31 @@ class PipeReaderTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(self.runner.proc)
         return self.socket.lines
 
+    async def test_telemetry_burst_is_batched_without_reordering_control(self):
+        records = [f"GT1,{i},{i},drive.motor.1.rpm,0" for i in range(600)]
+        for line in records + ["[INTERNAL] terminal closed"]:
+            self.runner._enqueue_broadcast(line)
+        await asyncio.wait_for(self.runner._broadcast_queue.join(), timeout=2)
+        self.assertEqual("\n".join(self.socket.lines).splitlines(),
+                         records + ["[INTERNAL] terminal closed"])
+        self.assertLess(len(self.socket.lines), 10)
+        self.assertEqual(self.socket.lines[-1], "[INTERNAL] terminal closed")
+
+    async def test_diagnostic_records_preserve_descriptor_order_and_report_drops(self):
+        records = ["GTD1,0,device.motor.1.rpm,motor,1,rpm,float64,100",
+                   "GT1,1,1,drive.motor.1.rpm,0",
+                   "GTE1,1,1,1,0,1,1,1,0,0,1,0,0,0"]
+        for line in records:
+            self.runner._enqueue_broadcast(line)
+        await asyncio.wait_for(self.runner._broadcast_queue.join(), timeout=2)
+        self.assertEqual("\n".join(self.socket.lines).splitlines(), records)
+        self.socket.lines.clear()
+        for _ in range(1025):
+            self.runner._enqueue_broadcast(records[1])
+        await asyncio.wait_for(self.runner._broadcast_queue.join(), timeout=2)
+        self.assertTrue(self.socket.lines[0].startswith("[UI] bridge dropped 1 records"))
+        self.assertEqual(self.runner._broadcast_drops, 0)
+
     async def test_oversized_complete_line_reports_error_and_next_pose_survives(self):
         reader = asyncio.StreamReader()
         reader.feed_data(b"x" * 70_000 + b"\n[POSE],10,1,2,0,0,0\n")

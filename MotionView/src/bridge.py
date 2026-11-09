@@ -731,6 +731,7 @@ class ProsTerminalRunner:
         self.reader_task: Optional[asyncio.Task] = None
         self._broadcast_task: Optional[asyncio.Task] = None
         self._broadcast_queue: Optional[asyncio.Queue[str]] = None
+        self._broadcast_drops = 0
         self._op_lock = asyncio.Lock()
 
         # Unix PTY support
@@ -753,16 +754,35 @@ class ProsTerminalRunner:
         except asyncio.QueueFull:
             # Serial output is untrusted and can be arbitrarily fast. Preserve
             # bridge responsiveness rather than creating an unbounded task list.
-            pass
+            self._broadcast_drops += 1
 
     async def _broadcast_lines(self):
         assert self._broadcast_queue is not None
         while True:
-            line = await self._broadcast_queue.get()
+            lines = [await self._broadcast_queue.get()]
+            # Drain ready records without adding a batching delay. Keep control
+            # messages separate and ordered; only telemetry records share a WS frame.
+            while len(lines) < 128 and not self._broadcast_queue.empty():
+                lines.append(self._broadcast_queue.get_nowait())
             try:
-                await broadcast(line)
+                if self._broadcast_drops:
+                    dropped = self._broadcast_drops
+                    self._broadcast_drops = 0
+                    await broadcast(f"[UI] bridge dropped {dropped} records; diagnostics may have gaps")
+                telemetry = []
+                for line in lines:
+                    if line.startswith(("GT1,", "GTD1,", "GTE1,")):
+                        telemetry.append(line)
+                        continue
+                    if telemetry:
+                        await broadcast("\n".join(telemetry))
+                        telemetry.clear()
+                    await broadcast(line)
+                if telemetry:
+                    await broadcast("\n".join(telemetry))
             finally:
-                self._broadcast_queue.task_done()
+                for _ in lines:
+                    self._broadcast_queue.task_done()
 
     async def _stop_broadcast_worker(self):
         if self._broadcast_task is None:

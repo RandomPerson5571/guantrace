@@ -21,7 +21,8 @@ export class LiveView {
     if (this.#bound) return;
     this.#bound = true;
     subscribeMode((mode) => {
-      const output = mode === "sysid" ? this.dom.sysIdTerminalOutput
+      const output = mode === "ekf" ? this.dom.ekfTerminalOutput
+        : mode === "sysid" ? this.dom.sysIdTerminalOutput
         : mode === "brain" ? this.dom.brainTerminalOutput
         : this.dom.viewingTerminalOutput;
       const terminal = this.dom.console;
@@ -67,6 +68,7 @@ export class LiveView {
       "click",
       (event) => void this.toggleStream(event),
     );
+    this.dom.ekfStreamButton?.addEventListener("click", (event) => void this.toggleStream(event));
     this.dom.refreshButton?.addEventListener("click", () =>
       this.live.stream.refreshNow(),
     );
@@ -116,12 +118,12 @@ export class LiveView {
     const busy = connectionBusy || streamBusy;
     const streaming =
       this.live.stream.streaming || this.live.stream.state === "stopping";
-    for (const button of [this.dom.startStopButton, this.dom.sysIdStreamButton]) {
+    for (const button of [this.dom.startStopButton, this.dom.sysIdStreamButton, this.dom.ekfStreamButton]) {
       if (!button) continue;
       button.disabled =
         busy || (!this.live.project.valid && !this.live.connection.connected);
       const action = streaming ? "Stop" : "Start";
-      button.textContent = button === this.dom.sysIdStreamButton ? action + " stream" : action;
+      button.textContent = button === this.dom.startStopButton ? action : action + " stream";
       button.classList.toggle("isOn", streaming);
       button.title = button.disabled
         ? this.disabledStreamTooltip()

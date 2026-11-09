@@ -140,3 +140,7 @@
   .brainGraphs { grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); }
   .brainPlot { height: clamp(200px, 48vh, 580px); }
 }
+
+.brainMain table { border-collapse: collapse; font-size: 12px; width: 100%; }
+.brainMain th, .brainMain td { text-align: left; padding: 6px; border-bottom: 1px solid #2b3747; overflow-wrap: anywhere; }
+.brainMain details { overflow-x: auto; }

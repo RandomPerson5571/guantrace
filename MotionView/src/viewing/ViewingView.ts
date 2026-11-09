@@ -120,7 +120,7 @@ export class ViewingView {
   }
 
   private handleDataChanged(change: Readonly<ViewingDataChangedEvent>): void {
-    if (change.kind === "replaced" || change.kind === "cleared") {
+    if (change.kind === "replaced" || change.kind === "cleared" || change.kind === "watches-cleared") {
       this.#watchTooltip.hide();
       this.#watchGraph.reset();
       this.render();

@@ -24,7 +24,7 @@ export class AppInput {
     };
     if (matchesShortcut(event, APP_SHORTCUTS.viewingMode))
       return run(() => this.commands.setViewingMode());
-    if (isMode("sysid")) return false;
+    if (isMode("sysid") || isMode("ekf")) return false;
     if (matchesShortcut(event, APP_SHORTCUTS.toggleTimeline))
       return run(() => this.commands.toggleTimeline());
     if (matchesShortcut(event, APP_SHORTCUTS.toggleLeftSidebar))

@@ -46,3 +46,16 @@ export function graphDevice(key: string) {
   if (!Object.hasOwn(kinds, kind) || port < 1 || port > 21) return null;
   return { name: kinds[kind], port, metrics: deviceMetrics[kind] ?? [] };
 }
+
+/** Reconstruct suppressed zeros only between confirmed, adjacent heartbeats. */
+export function appendGraphPoint(points: Point[], point: Point): void {
+  const last = points.at(-1);
+  if (last && point.x <= last.x) return;
+  if (last?.y === 0 && point.y === 0 && point.x - last.x <= 0.7) {
+    for (let x = last.x + 0.1; x < point.x - 0.001; x += 0.1) {
+      points.push({ x, y: 0 });
+    }
+  }
+  points.push(point);
+  if (points.length > maxSamples) points.splice(0, points.length - maxSamples);
+}

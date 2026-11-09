@@ -49,6 +49,16 @@ export class WatchListView {
   }
 
   bind(): void {
+    const clear = document.createElement("button");
+    clear.type = "button";
+    clear.textContent = "Clear watches";
+    clear.title = "Clear recorded watches; keep the route and continue streaming";
+    this.dom.watchList.before(clear);
+    clear.addEventListener("click", () => {
+      this.clearPreview();
+      this.viewing.clearWatches();
+      setStatus("Watches cleared.");
+    });
     this.dom.watchSort.addEventListener("change", () => {
       this.render();
     });

@@ -1,4 +1,4 @@
-export type AppMode = "viewing" | "brain" | "sysid";
+export type AppMode = "viewing" | "brain" | "sysid" | "ekf";
 
 export type ModeListener = (mode: AppMode, previousMode: AppMode) => void;
 
@@ -6,7 +6,7 @@ let currentMode: AppMode = "viewing";
 const listeners = new Set<ModeListener>();
 
 export function normalizeAppMode(value: unknown): AppMode {
-  return value === "brain" || value === "sysid" ? value : "viewing";
+  return value === "brain" || value === "sysid" || value === "ekf" ? value : "viewing";
 }
 
 export function getMode(): AppMode {

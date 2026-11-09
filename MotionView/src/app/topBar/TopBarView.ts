@@ -204,6 +204,7 @@ export class TopBarView {
       viewing: this.dom.viewingModeButton,
       brain: this.dom.brainModeButton,
       sysid: this.dom.sysIdModeButton,
+      ekf: this.dom.ekfModeButton,
     };
   }
 

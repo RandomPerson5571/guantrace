@@ -56,7 +56,7 @@ function runName(run: Run): string {
 }
 
 function metricsText(metrics: ErrorMetrics | null, unit: Unit): string {
-  return metrics ? `RMSE ${fmt(metrics.rmse)} ${unit}/s · Mean error ${fmt(metrics.bias)} ${unit}/s · n=${metrics.count}`
+  return metrics ? `R² ${fmt(metrics.rSquared)} · RMSE ${fmt(metrics.rmse)} ${unit}/s · Mean error ${fmt(metrics.bias)} ${unit}/s · n=${metrics.count}`
     : "Unavailable";
 }
 
@@ -114,6 +114,7 @@ export class SysIdView {
   #pendingLogName = "";
   #saved = readProfile();
   #fits = new Map<string, Fit>();
+  #trial = new Map<string, Gains>();
   #fitErrors = new Map<string, string>();
   #comparison = new Map<string, Map<string, Gains>>();
   #replayOffset: number | null = null;
@@ -183,6 +184,7 @@ export class SysIdView {
   private switchPage(page: Page): void {
     if (page === this.#page) return;
     this.#mapping.close();
+    this.#trial.clear();
     this.#page = page;
     this.#kind.value = "velocity";
     this.#message.textContent = "";
@@ -191,6 +193,7 @@ export class SysIdView {
   }
 
   private clearFits(): void {
+    this.#trial.clear();
     this.#fits.clear();
     this.#fitErrors.clear();
   }
@@ -199,6 +202,7 @@ export class SysIdView {
     this.#slots[page] = slot;
     if (page === "profile") this.clearFits();
     else {
+      this.#trial.clear();
       this.#comparison.clear();
       this.unlinkReplay();
     }
@@ -414,6 +418,7 @@ export class SysIdView {
     this.render();
     try {
       let reused = 0;
+      this.#trial.clear();
       this.#comparison.clear();
       for (const run of runs) {
         if (run.samples[0].mode !== "linear") continue;
@@ -548,6 +553,7 @@ export class SysIdView {
     }
     const gains = training ? new Map([...this.#fits].map(([key, fit]) => [key, fit.gains])) :
       run && !run.excluded ? this.#comparison.get(run.key) ?? new Map<string, Gains>() : new Map<string, Gains>();
+    for (const [channel, trial] of this.#trial) if (gains.has(channel)) gains.set(channel, trial);
     this.#plot?.render(this.#kind.value as PlotKind, run, channels, this.#fits, gains, !training);
     this.renderMetrics(training, run, channels, gains);
   }
@@ -565,6 +571,7 @@ export class SysIdView {
         const rSquared = fit.simulation?.rSquared;
         messages.push(
           `kS ${fmt(fit.gains.kS)} V · kV ${fmt(fit.gains.kV)} V/(${unit}/s) · kA ${fmt(fit.gains.kA)} V/(${unit}/s²)`,
+          `Voltage fit R² ${fmt(fit.voltage?.rSquared)} · RMSE ${fmt(fit.voltage?.rmse)} V`,
           `Acceleration R² ${fmt(fit.acceleration?.rSquared)} · ${fit.diagnostics.length} retained samples`,
           `Simulated velocity R² ${fmt(rSquared)}${rSquared != null && rSquared >= 0.99 ? " · Close match" : ""}`,
           metricsText(fit.simulation, unit), ...fit.warnings,
@@ -588,6 +595,38 @@ export class SysIdView {
         const p = document.createElement("p");
         p.textContent = message;
         card.append(p);
+      }
+      if (model && rows.length) {
+        const form = document.createElement("form");
+        form.className = "sysidRow";
+        const inputs = (["kS", "kV", "kA"] as const).map(key => {
+          const label = document.createElement("label");
+          label.textContent = key;
+          const input = document.createElement("input");
+          input.type = "number"; input.step = "any"; input.required = true;
+          input.value = String(model[key]); input.setAttribute("aria-label", `${name} ${key}`);
+          label.append(input); form.append(label);
+          return input;
+        });
+        const apply = document.createElement("button");
+        apply.textContent = "Try gains"; apply.type = "submit";
+        const reset = document.createElement("button");
+        reset.textContent = "Reset trial"; reset.type = "button";
+        reset.addEventListener("click", () => { this.#trial.delete(name); this.render(); });
+        form.append(apply, reset);
+        form.addEventListener("submit", event => {
+          event.preventDefault();
+          const trial = { kS: inputs[0].valueAsNumber, kV: inputs[1].valueAsNumber, kA: inputs[2].valueAsNumber };
+          if (!canSimulate(trial)) { inputs[0].setCustomValidity("Use kS ≥ 0, kV > 0 and kA > 0."); inputs[0].reportValidity(); return; }
+          this.#trial.set(name, trial); this.#kind.value = "simulation"; this.render();
+        });
+        inputs.forEach(input => input.addEventListener("input", () => inputs[0].setCustomValidity("")));
+        card.append(form);
+        if (this.#trial.has(name)) {
+          const note = document.createElement("p");
+          note.textContent = `Trial simulation · ${metricsText(predictionMetrics(simulate(rows, model)).model, rows[0].unit)}. Saved gains are unchanged.`;
+          card.append(note);
+        }
       }
       cards.push(card);
     }

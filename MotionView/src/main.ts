@@ -1,4 +1,5 @@
 import { ConfirmationDialog } from "./app/dialogs/ConfirmationDialog";
+import { EkfView } from "./ekf/EkfView";
 import { SysIdView } from "./sysid/SysIdView";
 import { BrainView } from "./brain/BrainView";
 import demoRouteUrl from "./assets/demo/getting-started-route.json?url";
@@ -94,6 +95,7 @@ viewingInput.bind();
 liveView.bind();
 liveInput.bind();
 new SysIdView(app.live.events, app.viewing, app.core.bridge);
+new EkfView(app.live.events);
 new BrainView(app.live);
 viewingLayout.bind();
 settingsView.bind();

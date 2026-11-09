@@ -123,36 +123,43 @@ export class LiveConnection {
         if (this.session.socket !== socket) return;
         if (typeof event.data !== "string" || !this.stream.acceptingData)
           return;
-        if (event.data === "[INTERNAL] terminal closed") {
-          void this.stream.remoteExit();
-          return;
-        }
-        if (event.data.startsWith("[UI] terminal exited"))
-          void this.stream.remoteExit();
-        const device = parseDeviceReading(event.data);
-        if (device) this.events.deviceReading.emit(device);
-        const tagged = this.parser.classify(event.data, device);
-        if (device && !tagged) return;
-        if (event.data.startsWith(SYSID_TAG) || (!tagged && event.data.startsWith(DRIVE_LAB_TAG))) {
-          this.events.sysIdBatch.emit(event.data);
-          return;
-        }
-        if (tagged) {
-          const anchor = this.parser.timestampAnchor(tagged);
-          if (anchor)
-            this.session.observeTimestamp(anchor.timestampMs, anchor.startsNewRun);
-          this.session.pending.push(tagged);
-        }
-        if (device) return;
-        const parsedWaypoint = tagged.startsWith("[WPOINT],")
-          ? this.parser.parseWaypointLine(tagged)
-          : null;
-        const malformedWaypoint = parsedWaypoint?.malformed === true;
-        const color = tagged && !malformedWaypoint ? "\x1b[32m" : "\x1b[31m";
-        const displayLine = parsedWaypoint?.waypointEvent
-          ? this.parser.formatWaypointLine(parsedWaypoint.waypointEvent)
-          : event.data;
-        this.appendConsole(`${color}|\x1b[0m ${displayLine}`);
+        event.data.split(/\r?\n/).forEach((line: string) => {
+          if (line === "[INTERNAL] terminal closed") {
+            void this.stream.remoteExit();
+            return;
+          }
+          if (line.startsWith("[UI] terminal exited"))
+            void this.stream.remoteExit();
+          if (line.startsWith("GTD1,") || line.startsWith("GTE1,")) {
+            this.events.diagnosticRecord.emit(line);
+            return;
+          }
+          if (line.startsWith("GT1,")) this.events.diagnosticRecord.emit(line);
+          const device = parseDeviceReading(line);
+          if (device) this.events.deviceReading.emit(device);
+          const tagged = this.parser.classify(line, device);
+          if (device && !tagged) return;
+          if (line.startsWith(SYSID_TAG) || (!tagged && line.startsWith(DRIVE_LAB_TAG))) {
+            this.events.sysIdBatch.emit(line);
+            return;
+          }
+          if (tagged) {
+            const anchor = this.parser.timestampAnchor(tagged);
+            if (anchor)
+              this.session.observeTimestamp(anchor.timestampMs, anchor.startsNewRun);
+            this.session.pending.push(tagged);
+          }
+          if (device) return;
+          const parsedWaypoint = tagged.startsWith("[WPOINT],")
+            ? this.parser.parseWaypointLine(tagged)
+            : null;
+          const malformedWaypoint = parsedWaypoint?.malformed === true;
+          const color = tagged && !malformedWaypoint ? "\x1b[32m" : "\x1b[31m";
+          const displayLine = parsedWaypoint?.waypointEvent
+            ? this.parser.formatWaypointLine(parsedWaypoint.waypointEvent)
+            : line;
+          this.appendConsole(`${color}|\x1b[0m ${displayLine}`);
+        });
       });
       socket.addEventListener("error", () => {
         if (this.session.socket !== socket) return;

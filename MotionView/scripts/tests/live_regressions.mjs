@@ -19,6 +19,19 @@ globalThis.requestAnimationFrame = (callback) => {
 };
 
 try {
+  const { appendGraphPoint, maxSamples } = await server.ssrLoadModule("/brain/graphTelemetry.ts");
+  const zeros = [{ x: 0, y: 0 }];
+  appendGraphPoint(zeros, { x: 0.5, y: 0 });
+  assert.equal(zeros.length, 6);
+  assert.ok(zeros.every(point => point.y === 0));
+  appendGraphPoint(zeros, { x: 2, y: 0 });
+  assert.equal(zeros.length, 7, "Do not invent zeros across lost telemetry");
+  appendGraphPoint(zeros, { x: 2.5, y: 10 });
+  assert.equal(zeros.length, 8, "Do not infer zero before nonzero input");
+  appendGraphPoint(zeros, { x: 2.5, y: 20 });
+  assert.equal(zeros.length, 8, "Ignore duplicate timestamps");
+  for (let x = 3; x < 2000; x++) appendGraphPoint(zeros, { x, y: 1 });
+  assert.equal(zeros.length, maxSamples);
   const { LiveLineParser } = await server.ssrLoadModule(
     "/live/LiveLineParser.ts",
   );

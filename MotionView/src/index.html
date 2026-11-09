@@ -61,6 +61,8 @@
             aria-controls="brainPanel" data-mode="brain" tabindex="-1">Brain</button>
           <button id="modeSysId" class="modeBtn" role="tab" aria-selected="false"
             aria-controls="sysidPanel" data-mode="sysid" tabindex="-1">SysId</button>
+          <button id="modeEkf" class="modeBtn" role="tab" aria-selected="false"
+            aria-controls="ekfPanel" data-mode="ekf" tabindex="-1">EKF</button>
         </div>
       </div>
       <div class="topBarRight">
@@ -105,12 +107,37 @@
         <div id="brainTerminalOutput" class="brainTerminalOutput"></div>
       </section>
       <p>Select a device to open its graphs.</p>
+      <details><summary>Signal specifications</summary>
+        <p>Announced by firmware before sampling; refreshed for late connections.</p>
+        <table><thead><tr><th>Signal</th><th>Device / port</th><th>Type</th><th>Unit</th><th>Period (ms)</th><th>Latest</th></tr></thead><tbody id="brainSignals"></tbody></table>
+      </details>
       <p id="brainWindowError" role="alert" hidden>Couldn’t open the graph window.</p>
     </div>
   </section>
 
+  <section id="ekfPanel" class="sysidPanel" role="tabpanel" aria-labelledby="modeEkf" hidden>
+      <h1>EKF diagnostics</h1>
+      <button id="ekfStream" type="button">Start stream</button>
+      <div class="sysidRow">
+        <label>Measurement <select id="ekfSource" aria-label="EKF measurement"></select></label>
+        <label>Plot <select id="ekfKind"><option value="innovation">Innovation ±3σ</option><option value="nis">NIS</option><option value="acf">Autocorrelation</option><option value="gain">Kalman gain</option></select></label>
+        <button id="ekfPause" type="button">Pause</button>
+        <button id="ekfClear" type="button">Clear EKF</button>
+        <button id="ekfImport" type="button">Import EKF log</button>
+        <input id="ekfFile" type="file" accept=".gt1,.log,.txt" hidden />
+        <button id="ekfExport" type="button">Save EKF log</button>
+      </div>
+      <p id="ekfStatus" role="status">Start the robot stream to receive EKF updates.</p>
+      <div class="sysidPlot"><canvas id="ekfCanvas" role="img" aria-label="EKF consistency plot"></canvas></div>
+      <p id="ekfMetrics"></p>
+      <p>Each update is scalar (m = 1). Rejected updates remain in the analysis. NIS needs no ground truth; bounds assume independent Gaussian innovations.</p>
+      <p id="ekfAdvice"></p>
+      <details><summary>Robot terminal</summary><div id="ekfTerminalOutput" class="brainTerminalOutput"></div></details>
+  </section>
+
   <section id="sysidPanel" class="sysidPanel" role="tabpanel" aria-labelledby="modeSysId" hidden>
     <h1>Drivetrain SysId</h1>
+
     <div class="sysidRow">
       <button id="sysidStream" type="button">Start stream</button>
       <button id="sysidProfile" aria-pressed="true">Profile</button>

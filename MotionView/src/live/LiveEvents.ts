@@ -15,6 +15,7 @@ export class LiveEvents {
   readonly streamChanged = new TypedEvent<LiveStreamChangedEvent>();
   readonly projectChanged = new TypedEvent<LiveProjectChangedEvent>();
   readonly preferencesChanged = new TypedEvent<LivePreferencesChangedEvent>();
+  readonly diagnosticRecord = new TypedEvent<string>();
   readonly sysIdBatch = new TypedEvent<string>();
   readonly deviceReading = new TypedEvent<DeviceReading>();
   readonly consoleChanged = new TypedEvent<LiveConsoleEvent>();

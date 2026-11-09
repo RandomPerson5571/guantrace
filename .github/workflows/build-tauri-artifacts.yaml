@@ -97,8 +97,6 @@ jobs:
         run: pnpm test:imports
       - name: Live behavior regressions
         run: pnpm test:live
-      - name: Planning behavior regressions
-        run: pnpm test:planning
       - name: Web build
         run: pnpm build:web
 

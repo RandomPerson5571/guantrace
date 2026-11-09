@@ -1,7 +1,6 @@
 import { optionalElement, requiredElement } from "../../dom/elements";
 
 export class SettingsDom {
-  readonly planSimulation: HTMLElement;
   readonly modal: HTMLElement;
   readonly closeButton: HTMLButtonElement;
   readonly telemetryEnabled: HTMLInputElement;
@@ -25,13 +24,6 @@ export class SettingsDom {
   readonly offsetTheta: HTMLInputElement;
   readonly minimumSpeed: HTMLInputElement;
   readonly maximumSpeed: HTMLInputElement;
-  readonly planMoveStep: HTMLInputElement;
-  readonly planSnapStep: HTMLSelectElement;
-  readonly planThetaSnapStep: HTMLSelectElement;
-  readonly planLimitBounds: HTMLInputElement;
-  readonly planShowFieldNodes: HTMLInputElement;
-  readonly planSnapStepLabel: HTMLElement | null;
-  readonly planMoveStepLabel: HTMLElement | null;
   readonly robotImageScale: HTMLInputElement;
   readonly robotImageOffsetX: HTMLInputElement;
   readonly robotImageOffsetY: HTMLInputElement;
@@ -67,14 +59,6 @@ export class SettingsDom {
     this.offsetTheta = requiredElement("settingsOffTheta", HTMLInputElement, document);
     this.minimumSpeed = requiredElement("settingsMinSpeed", HTMLInputElement, document);
     this.maximumSpeed = requiredElement("settingsMaxSpeed", HTMLInputElement, document);
-    this.planSimulation = requiredElement("settingsPlanSimulation", HTMLElement, document);
-    this.planMoveStep = requiredElement("settingsPlanMoveStep", HTMLInputElement, document);
-    this.planSnapStep = requiredElement("settingsPlanSnapStep", HTMLSelectElement, document);
-    this.planThetaSnapStep = requiredElement("settingsPlanThetaSnapStep", HTMLSelectElement, document);
-    this.planLimitBounds = requiredElement("settingsPlanLimitBounds", HTMLInputElement, document);
-    this.planShowFieldNodes = requiredElement("settingsPlanShowFieldNodes", HTMLInputElement, document);
-    this.planSnapStepLabel = optionalElement("settingsPlanSnapStepLabel", HTMLElement, document);
-    this.planMoveStepLabel = optionalElement("settingsPlanMoveStepLabel", HTMLElement, document);
     this.robotImageScale = requiredElement("settingsRobotImgScale", HTMLInputElement, document);
     this.robotImageOffsetX = requiredElement("settingsRobotImgOffX", HTMLInputElement, document);
     this.robotImageOffsetY = requiredElement("settingsRobotImgOffY", HTMLInputElement, document);

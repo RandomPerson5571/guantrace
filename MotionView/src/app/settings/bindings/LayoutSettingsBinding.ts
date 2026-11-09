@@ -1,4 +1,3 @@
-import type { PlanningLayoutView } from "../../../planning/render/PlanningLayoutView";
 import type { ViewingLayoutView } from "../../../viewing/render/ViewingLayoutView";
 import type { SettingsFeature } from "../SettingsFeature";
 
@@ -12,7 +11,6 @@ function cssNumber(property: string, fallback: number): number {
 export class LayoutSettingsBinding {
   constructor(
     private readonly settings: SettingsFeature,
-    private readonly planning: PlanningLayoutView,
     private readonly viewing: ViewingLayoutView,
   ) {}
 
@@ -23,11 +21,6 @@ export class LayoutSettingsBinding {
       sidebarWidth: value.layoutRightSidebarWidthViewing,
       timelineHeight: value.layoutTimelineHeight,
     });
-    this.planning.applyPersistedLayout({
-      sidebarWidth: value.layoutRightSidebarWidthPlanning,
-      waypointListHeight: value.layoutPlanningWaypointHeight,
-      timelineHeight: value.layoutPlanningTimelineHeight,
-    });
   }
   capture(): void {
     this.settings.update(
@@ -37,13 +30,7 @@ export class LayoutSettingsBinding {
           "--rightSidebarWViewing",
           370,
         ),
-        layoutRightSidebarWidthPlanning: cssNumber(
-          "--rightSidebarWPlanning",
-          370,
-        ),
         layoutTimelineHeight: cssNumber("--timelineH", 180),
-        layoutPlanningWaypointHeight: cssNumber("--planListH", 240),
-        layoutPlanningTimelineHeight: cssNumber("--planningTimelineH", 144),
       },
       "system",
     );

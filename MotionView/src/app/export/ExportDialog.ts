@@ -3,8 +3,7 @@ import { bindModalBackdropDismissal } from "../dialogs/modalDismissal";
 import type { ExportDom } from "./ExportDom";
 import type { ExportService } from "./ExportService";
 import type { ExportLocation, ExportRequest } from "./exportTypes";
-import type { MotionViewExportType } from "../persistence";
-import type { PlanningDialogs } from "../../planning/PlanningDialogs";
+import type { ConfirmationDialog } from "../dialogs/ConfirmationDialog";
 import { isExportFileConflict, nativeErrorMessage } from "../../tauri/commands";
 
 function filename(value: string): string {
@@ -30,7 +29,7 @@ export class ExportDialog {
     private readonly app: MotionViewApp,
     private readonly dom: ExportDom,
     private readonly service: ExportService,
-    private readonly dialogs: PlanningDialogs,
+    private readonly dialogs: ConfirmationDialog,
   ) { }
 
   bind(): void {
@@ -65,17 +64,10 @@ export class ExportDialog {
       this.#submitError = "";
       this.render();
     });
-    this.dom.type.addEventListener("change", () => {
-      this.#submitError = "";
-      this.render();
-    });
     this.dom.customPath.addEventListener("input", () => {
       this.#submitError = "";
       this.render();
     });
-    this.app.planning.events.documentChanged.subscribe(() =>
-      this.renderAvailability(),
-    );
     this.app.viewing.events.dataChanged.subscribe(() =>
       this.renderAvailability(),
     );
@@ -104,12 +96,9 @@ export class ExportDialog {
     return !this.dom.modal.hasAttribute("hidden");
   }
 
-  open(type: MotionViewExportType = this.app.core.mode.getMode()): void {
-    if (type !== "viewing")
-      this.dom.pathName.value = this.app.planning.paths.active.name;
-    else if (!this.dom.pathName.value) this.dom.pathName.value = "Untitled Path";
+  open(): void {
+    if (!this.dom.pathName.value) this.dom.pathName.value = "Untitled Path";
     if (!this.dom.filename.value) this.dom.filename.value = "motionview-path";
-    this.dom.type.value = type;
     this.#submitError = "";
     this.dom.success.hidden = true;
     this.render();
@@ -126,21 +115,14 @@ export class ExportDialog {
   private renderAvailability(): void {
     const disabledState =
       this.app.live.stream.state !== "idle" ||
-      !(this.app.planning.hasData || this.app.viewing.data.hasData);
+      !this.app.viewing.data.hasData;
 
     this.dom.open.disabled = disabledState;
   }
 
   private render(): void {
     this.syncProjectOption();
-    const type = this.exportType;
     const location = this.location;
-    const validType =
-      type === "viewing"
-        ? this.app.viewing.data.hasData
-        : type === "planning"
-          ? this.app.planning.hasData
-          : this.app.viewing.data.hasData || this.app.planning.hasData;
     this.dom.customWrap.hidden = location !== "custom";
     this.dom.filenameHint.textContent = this.dom.filename.value
       ? `File: ${filename(this.dom.filename.value)}.json`
@@ -155,8 +137,8 @@ export class ExportDialog {
         ? "Enter a filename to continue."
         : location === "custom" && !this.dom.customPath.value.trim()
           ? "Enter a custom folder path to continue."
-          : !validType
-            ? `There is no ${type === "both" ? "Viewing or Planning" : type === "viewing" ? "Viewing mode" : "Planning mode"} data to export.`
+          : !this.app.viewing.data.hasData
+            ? "There is no recorded run data to export."
             : this.#submitError;
     this.dom.validation.textContent = message;
     this.dom.confirm.disabled = this.#submitting || !!message;
@@ -170,7 +152,6 @@ export class ExportDialog {
     this.dom.confirm.disabled = true;
     this.dom.success.hidden = true;
     const request: ExportRequest = {
-      exportType: this.exportType,
       filenameBase: filename(this.dom.filename.value),
       pathName: pathName(this.dom.pathName.value),
       destination: {
@@ -183,12 +164,6 @@ export class ExportDialog {
               : null,
       },
     };
-
-    if (request.exportType !== "viewing")
-      this.app.planning.paths.rename(
-        this.app.planning.paths.activeId,
-        request.pathName,
-      );
 
     try {
       let result;
@@ -255,10 +230,5 @@ export class ExportDialog {
   private get location(): ExportLocation {
     const value = this.dom.location.value;
     return value === "custom" || value === "project" ? value : "downloads";
-  }
-
-  private get exportType(): MotionViewExportType {
-    const value = this.dom.type.value;
-    return value === "planning" || value === "both" ? value : "viewing";
   }
 }

@@ -699,7 +699,9 @@ fn spawn_bridge(
         "http://tauri.localhost",
     ]);
     #[cfg(debug_assertions)]
-    cmd.args(["--allowed-origin", "http://127.0.0.1:1420"]);
+    if let Some(dev_url) = &app.config().build.dev_url {
+        cmd.args(["--allowed-origin", &dev_url.origin().ascii_serialization()]);
+    }
 
     let child = cmd
         .env("MOTIONVIEW_LOG_PATH", &log_path)
@@ -716,6 +718,32 @@ fn spawn_bridge(
         child,
         command_marker: spawn_label,
     })
+}
+
+#[tauri::command]
+async fn open_brain_graph(window: tauri::WebviewWindow, key: String) -> Result<(), String> {
+    let (kind, port) = key.split_once(':').ok_or("Invalid device")?;
+    if window.label() != "main"
+        || kind.is_empty()
+        || kind.len() > 16
+        || !kind.bytes().all(|byte| byte.is_ascii_lowercase() || byte == b'-')
+        || !port.parse::<u8>().is_ok_and(|port| (1..=21).contains(&port))
+    {
+        return Err("Invalid device".into());
+    }
+    let app = window.app_handle();
+    let label = format!("brain-graph-{key}");
+    if let Some(existing) = app.get_webview_window(&label) {
+        existing.unminimize().map_err(|err| err.to_string())?;
+        return existing.set_focus().map_err(|err| err.to_string());
+    }
+    tauri::WebviewWindowBuilder::new(app, label, tauri::WebviewUrl::App("brain-graph.html".into()))
+        .title(format!("Device telemetry · Port {port}"))
+        .inner_size(900.0, 650.0)
+        .min_inner_size(420.0, 320.0)
+        .build()
+        .map(|_| ())
+        .map_err(|err| err.to_string())
 }
 
 #[tauri::command]
@@ -895,8 +923,7 @@ fn run_app() {
             settings::read_saved_paths,
             settings::write_saved_paths,
             export::export_motionview_json,
-            export::resolve_export_directory,
-            export::export_planning_code,
+            open_brain_graph,
             set_windows_fullscreen,
             get_window_fullscreen_state,
             reset_window_layout,

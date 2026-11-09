@@ -5,7 +5,7 @@ export type TopBarActionRequestedEvent =
   | { readonly kind: "file-selected"; readonly file: File | null; readonly input: HTMLInputElement; }
   | { readonly kind: "robot-image-selected"; readonly file: File | null; readonly input: HTMLInputElement; }
   | { readonly kind: "custom-field-image-selected"; readonly file: File | null; readonly input: HTMLInputElement; }
-  | { readonly kind: "clear-requested"; readonly clearAll: boolean }
+  | { readonly kind: "clear-requested" }
   | { readonly kind: "settings-requested" }
   | { readonly kind: "help-requested" };
 

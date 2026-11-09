@@ -1,8 +1,4 @@
-export type ImportedFileType =
-  | "json"
-  | "text"
-  | "json-cancelled"
-  | "text-cancelled";
+export type ImportedFileType = "json" | "text";
 
 export interface RouteImportResult {
   readonly type: ImportedFileType;

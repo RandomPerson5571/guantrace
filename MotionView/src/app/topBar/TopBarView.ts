@@ -18,6 +18,7 @@ export class TopBarView {
   #savedScrollLeft = 0;
   #layoutFrame = 0;
   #bound = false;
+  #fieldEnabled = true;
   #resizeObserver: ResizeObserver | null = null;
 
   constructor(
@@ -44,18 +45,31 @@ export class TopBarView {
       event.stopPropagation();
       this.events.actionRequested.emit({ kind: "settings-requested" });
     });
-    this.dom.clearButton.addEventListener("click", (event) => {
-      this.events.actionRequested.emit({
-        kind: "clear-requested",
-        clearAll: event.metaKey || event.ctrlKey,
-      });
+    this.dom.clearButton.addEventListener("click", () => {
+      this.events.actionRequested.emit({ kind: "clear-requested" });
     });
     this.dom.helpButton.addEventListener("click", (event) => {
       event.stopPropagation();
       this.events.actionRequested.emit({ kind: "help-requested" });
     });
-    this.dom.viewingModeButton.addEventListener("click", () => this.app.core.mode.setMode("viewing"));
-    this.dom.planningModeButton.addEventListener("click", () => this.app.core.mode.setMode("planning"));
+    const modes = Object.entries(this.modeTabs);
+    for (const [index, [mode, tab]] of modes.entries()) {
+      tab.addEventListener("click", () => this.app.core.mode.setMode(mode as AppMode));
+      tab.addEventListener("keydown", (event) => {
+        let nextIndex: number;
+        switch (event.key) {
+          case "ArrowLeft": nextIndex = (index - 1 + modes.length) % modes.length; break;
+          case "ArrowRight": nextIndex = (index + 1) % modes.length; break;
+          case "Home": nextIndex = 0; break;
+          case "End": nextIndex = modes.length - 1; break;
+          default: return;
+        }
+        event.preventDefault();
+        const nextTab = modes[nextIndex][1];
+        nextTab.click();
+        nextTab.focus();
+      });
+    }
     this.dom.playButton.addEventListener("click", () => this.togglePlayback());
     this.dom.speedSelect.addEventListener("change", () => {
       this.setPlaybackSpeed(this.playbackSpeed);
@@ -83,9 +97,6 @@ export class TopBarView {
       this.renderMode(mode);
       this.renderPlayback();
     });
-    this.app.planning.events.playbackChanged.subscribe(() => this.renderPlayback());
-    this.app.planning.events.documentChanged.subscribe(() => this.renderPlayback());
-    this.app.planning.events.projectionChanged.subscribe(() => this.renderPlayback());
     this.app.viewing.events.playbackChanged.subscribe(() => this.renderPlayback());
     this.app.viewing.events.dataChanged.subscribe(() => this.renderPlayback());
     this.app.live.events.connectionChanged.subscribe(() => this.renderPlayback());
@@ -152,14 +163,14 @@ export class TopBarView {
   }
 
   setFieldEnabled(enabled: boolean): void {
-    this.dom.fieldSelect.disabled = !enabled;
+    this.#fieldEnabled = enabled;
+    this.dom.fieldSelect.disabled = !enabled || this.app.core.mode.getMode() !== "viewing";
   }
 
   setPlaybackSpeed(speed: number): void {
     const nextSpeed = Number.isFinite(speed) && speed > 0 ? speed : 1;
     this.dom.speedSelect.value = String(nextSpeed);
     this.app.viewing.playback.setRate(nextSpeed);
-    this.app.planning.playback.setRate(nextSpeed);
   }
 
   openFilePicker(): void {
@@ -179,10 +190,6 @@ export class TopBarView {
   }
 
   private togglePlayback(): void {
-    if (this.app.core.mode.getMode() === "planning") {
-      this.app.planning.playback.toggle();
-      return;
-    }
     if (this.app.viewing.data.hasData) this.app.viewing.playback.toggle();
   }
 
@@ -192,22 +199,38 @@ export class TopBarView {
     this.events.settingsChanged.emit({ kind: "field", fieldKey });
   }
 
+  private get modeTabs(): Record<AppMode, HTMLButtonElement> {
+    return {
+      viewing: this.dom.viewingModeButton,
+      brain: this.dom.brainModeButton,
+      sysid: this.dom.sysIdModeButton,
+    };
+  }
+
   private renderMode(mode: AppMode): void {
+    const tabs = this.modeTabs;
+    for (const [name, tab] of Object.entries(tabs)) {
+      const selected = mode === name;
+      tab.classList.toggle("isActive", selected);
+      tab.setAttribute("aria-selected", String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+    }
     const viewing = mode === "viewing";
-    this.dom.viewingModeButton.classList.toggle("isActive", viewing);
-    this.dom.viewingModeButton.setAttribute("aria-selected", viewing ? "true" : "false");
-    this.dom.planningModeButton.classList.toggle("isActive", !viewing);
-    this.dom.planningModeButton.setAttribute("aria-selected", viewing ? "false" : "true");
+    this.dom.fitButton.disabled = !viewing;
+    this.dom.clearButton.disabled = !viewing;
+    this.dom.speedSelect.disabled = !viewing;
+    this.dom.fieldSelect.disabled = !viewing || !this.#fieldEnabled;
+    if (viewing) {
+      this.dom.fieldWorkspace.setAttribute("aria-labelledby", tabs[mode].id);
+    }
   }
 
   private renderPlayback(): void {
     const streaming = this.app.live.stream.streaming || this.app.live.stream.state === "stopping";
-    const planning = this.app.core.mode.getMode() === "planning";
-    const playing = planning ? this.app.planning.playback.isPlaying : this.app.viewing.playback.isPlaying;
-    const hasPlayableData = planning
-      ? this.app.planning.route.length >= 2 && !this.app.planning.route.isEditing && !this.app.planning.projection.pending && this.app.planning.playback.duration > 0
-      : this.app.viewing.data.poses.length >= 2;
-    this.dom.playButton.disabled = streaming || !hasPlayableData;
+    const playing = this.app.viewing.playback.isPlaying;
+    const hasPlayableData = this.app.viewing.data.poses.length >= 2;
+    this.dom.playButton.disabled =
+      this.app.core.mode.getMode() !== "viewing" || streaming || !hasPlayableData;
     this.dom.playButton.textContent = playing ? "⏸" : "▶";
     this.dom.playButton.setAttribute("aria-pressed", playing ? "true" : "false");
   }
@@ -225,6 +248,7 @@ export class TopBarView {
     const topBarRect = this.dom.root.getBoundingClientRect();
     const centerRect = this.dom.center.getBoundingClientRect();
     const rightRect = this.dom.right.getBoundingClientRect();
+    const rightEdge = rightRect.width ? rightRect.left : topBarRect.right;
     const statusRect = this.dom.status.getBoundingClientRect();
     const centerWidth = Math.ceil(centerRect.width);
     const idealCenterX = Math.floor(topBarRect.width / 2);
@@ -242,7 +266,7 @@ export class TopBarView {
     this.dom.status.style.maxWidth = `${centeredStatusMaxWidth}px`;
     const centeredCurrentlyTruncates = this.dom.status.scrollWidth > this.dom.status.clientWidth;
     const centeredCenterRight = idealCenterX + centerWidth / 2;
-    const centeredRightGap = rightRect.left - topBarRect.left - centeredCenterRight;
+    const centeredRightGap = rightEdge - topBarRect.left - centeredCenterRight;
     const centeredFitsLeft = idealCenterLeft >= statusStartX + CENTER_STATUS_GAP_PX;
 
     if (!centeredCurrentlyTruncates && centeredFitsLeft && centeredRightGap >= CENTER_RIGHT_SCROLL_GAP_PX) {
@@ -256,7 +280,7 @@ export class TopBarView {
     const minimumCenterX = Math.ceil(statusStartX + desiredStatusWidth + CENTER_STATUS_GAP_PX + centerWidth / 2);
     const shiftedCenterX = Math.max(idealCenterX, minimumCenterX);
     const shiftedCenterRight = shiftedCenterX + centerWidth / 2;
-    const shiftedRightGap = rightRect.left - topBarRect.left - shiftedCenterRight;
+    const shiftedRightGap = rightEdge - topBarRect.left - shiftedCenterRight;
 
     if (centeredKeepsStatusUntruncated && centeredFitsLeft && centeredRightGap >= CENTER_RIGHT_SCROLL_GAP_PX) {
       this.dom.status.style.maxWidth = `${Math.max(0, desiredStatusWidth)}px`;

@@ -17,7 +17,6 @@ function requiredElement<T extends HTMLElement>(
 export interface ViewingFieldDom {
   readonly canvas: HTMLCanvasElement;
   readonly cursor: HTMLElement;
-  readonly planCursor: HTMLElement;
 }
 
 export interface ViewingTimelineDom {
@@ -57,7 +56,6 @@ export interface ViewingReadoutDom {
   readonly point: HTMLElement;
   readonly pose: HTMLElement;
   readonly cursor: HTMLElement;
-  readonly planCursor: HTMLElement;
 }
 
 export interface ViewingFloatingDom {
@@ -120,7 +118,6 @@ export class ViewingDom {
     this.field = {
       canvas: requiredElement(document, "c"),
       cursor: requiredElement(document, "cursorPill"),
-      planCursor: requiredElement(document, "planCursorPill"),
     };
     this.timeline = {
       canvas: requiredElement(document, "timelineCanvas"),
@@ -163,7 +160,6 @@ export class ViewingDom {
       point: requiredElement(document, "pointPill"),
       pose: requiredElement(document, "posePill"),
       cursor: requiredElement(document, "cursorPill"),
-      planCursor: requiredElement(document, "planCursorPill"),
     };
     this.floating = {
       panel: requiredElement(document, "floatingInfo"),

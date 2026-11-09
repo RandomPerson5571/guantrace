@@ -5,9 +5,13 @@ function element<T extends HTMLElement>(root: Document, id: string): T | null {
 export class LiveDom {
   private constructor(
     readonly startStopButton: HTMLButtonElement | null,
+    readonly sysIdStreamButton: HTMLButtonElement | null,
     readonly refreshButton: HTMLButtonElement | null,
     readonly refreshInterval: HTMLSelectElement | null,
     readonly console: HTMLElement | null,
+    readonly viewingTerminalOutput: HTMLElement | null,
+    readonly brainTerminalOutput: HTMLElement | null,
+    readonly sysIdTerminalOutput: HTMLElement | null,
     readonly fileButton: HTMLButtonElement | null,
     readonly playButton: HTMLButtonElement | null,
     readonly projectInput: HTMLInputElement | null,
@@ -20,9 +24,13 @@ export class LiveDom {
   static from(root: Document = document): LiveDom {
     return new LiveDom(
       element(root, "btnLeftStream"),
+      element(root, "sysidStream"),
       element(root, "btnLeftRefresh"),
       element(root, "leftRefreshInterval"),
       element(root, "liveWin"),
+      element(root, "viewingTerminalOutput"),
+      element(root, "brainTerminalOutput"),
+      element(root, "sysidTerminalOutput"),
       element(root, "btnFile"),
       element(root, "btnPlay"),
       element(root, "prosDirInput"),

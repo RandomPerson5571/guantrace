@@ -6,7 +6,7 @@ import type { MotionViewDocumentSerializer } from "../persistence";
 import { feedbackTelemetry, type FeedbackArea, type FeedbackProduct, type FeedbackType } from "../../telemetry/createTelemetry";
 import type { HelpDom } from "./HelpDom";
 
-const GROUPS: readonly ShortcutHelpGroup[] = ["Global", "Viewing", "Planning"];
+const GROUPS: readonly ShortcutHelpGroup[] = ["Global", "Viewing"];
 
 export class HelpView {
   #bound = false;
@@ -197,7 +197,7 @@ export class HelpView {
     let routeJson: string | null = null;
     try {
       if (this.dom.feedbackRoute.checked) {
-        routeJson = JSON.stringify(this.serializer.exportPayload("both", "Feedback submission", this.app.settings.current));
+        routeJson = JSON.stringify(this.serializer.exportPayload("Feedback submission", this.app.settings.current));
       }
       const result = await feedbackTelemetry.submit({
         description,

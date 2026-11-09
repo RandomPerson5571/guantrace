@@ -10,9 +10,10 @@
   "scripts": {
     "py:clean": "node scripts/clean_py.js",
     "py:build": "node scripts/build_py.js",
+    "test:wpilib": "node scripts/tests/wpilib_regressions.mjs",
+    "test:sysid": "node scripts/tests/sysid_regressions.mjs",
     "test:live": "node scripts/tests/live_regressions.mjs",
     "test:imports": "node scripts/tests/check_import_case.mjs",
-    "test:planning": "node scripts/tests/planning_templates.mjs",
     "typecheck": "tsc --noEmit",
     "dev:web": "vite --config vite.config.js",
     "build:web": "vite build --config vite.config.js",

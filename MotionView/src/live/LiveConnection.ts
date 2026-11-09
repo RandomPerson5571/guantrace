@@ -1,3 +1,6 @@
+import { SYSID_TAG } from "../sysid/capture";
+import { DRIVE_LAB_TAG } from "../sysid/driveLab";
+import { parseDeviceReading } from "../brain/deviceTelemetry";
 import type { BridgeService } from "../app/BridgeService";
 import type { ViewingFeature } from "../viewing/ViewingFeature";
 import type { LiveEvents } from "./LiveEvents";
@@ -126,13 +129,21 @@ export class LiveConnection {
         }
         if (event.data.startsWith("[UI] terminal exited"))
           void this.stream.remoteExit();
-        const tagged = this.parser.classify(event.data);
+        const device = parseDeviceReading(event.data);
+        if (device) this.events.deviceReading.emit(device);
+        const tagged = this.parser.classify(event.data, device);
+        if (device && !tagged) return;
+        if (event.data.startsWith(SYSID_TAG) || (!tagged && event.data.startsWith(DRIVE_LAB_TAG))) {
+          this.events.sysIdBatch.emit(event.data);
+          return;
+        }
         if (tagged) {
           const anchor = this.parser.timestampAnchor(tagged);
           if (anchor)
             this.session.observeTimestamp(anchor.timestampMs, anchor.startsNewRun);
           this.session.pending.push(tagged);
         }
+        if (device) return;
         const parsedWaypoint = tagged.startsWith("[WPOINT],")
           ? this.parser.parseWaypointLine(tagged)
           : null;

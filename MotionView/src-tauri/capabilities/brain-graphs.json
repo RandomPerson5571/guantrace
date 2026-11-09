@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "brain-graphs",
+  "description": "Device graph windows can exchange telemetry events",
+  "windows": ["brain-graph-*"],
+  "permissions": ["core:event:default"]
+}

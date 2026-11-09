@@ -1,4 +1,3 @@
-import type { PlanningCodeExportSettings } from "../../planning/planningTypes";
 import type { FieldCompetition } from "../../render/field/fieldImages";
 
 export interface PersistedRobotImage {
@@ -19,13 +18,6 @@ export interface MotionViewSettings {
   readonly offTheta?: string;
   readonly minSpeed?: string;
   readonly maxSpeed?: string;
-  readonly planMoveStep?: string;
-  readonly planSnapStep?: string;
-  readonly planThetaSnapStep?: string;
-  readonly planLimitBounds?: boolean;
-  readonly planShowFieldNodes?: boolean;
-  readonly planExportTemplate?: string;
-  readonly planningCodeExport?: PlanningCodeExportSettings;
   readonly refreshIntervalMs?: string | number;
   readonly showPreviousYearFields?: boolean;
   readonly fieldCompetition?: string;
@@ -40,15 +32,11 @@ export interface MotionViewSettings {
   readonly customFieldImage?: PersistedRobotImage;
   readonly customFieldWidthIn?: string | number;
   readonly customFieldHeightIn?: string | number;
-  readonly skipPlanningCodeExportOverwriteConfirmation?: boolean;
   readonly skipMotionViewJsonExportOverwriteConfirmation?: boolean;
   readonly fieldRotation?: string | number;
   readonly layoutLeftSidebarWidth?: number;
   readonly layoutRightSidebarWidthViewing?: number;
-  readonly layoutRightSidebarWidthPlanning?: number;
   readonly layoutTimelineHeight?: number;
-  readonly layoutPlanningWaypointHeight?: number;
-  readonly layoutPlanningTimelineHeight?: number;
   readonly appState?: Readonly<Record<string, unknown>>;
 }
 
@@ -70,13 +58,6 @@ export const DEFAULT_SETTINGS: Readonly<MotionViewSettings> = {
   offTheta: "0",
   minSpeed: "0",
   maxSpeed: "127",
-  planMoveStep: "0.5",
-  planSnapStep: "0",
-  planThetaSnapStep: "0",
-  planLimitBounds: true,
-  planShowFieldNodes: true,
-  planExportTemplate: "",
-  planningCodeExport: { header: "", footer: "", target: "downloads", path: "" },
   refreshIntervalMs: "500",
   showPreviousYearFields: true,
   fieldCompetition: "all" satisfies FieldCompetition,
@@ -91,14 +72,10 @@ export const DEFAULT_SETTINGS: Readonly<MotionViewSettings> = {
   customFieldImage: { path: null, dataUrl: null },
   customFieldWidthIn: 144,
   customFieldHeightIn: 144,
-  skipPlanningCodeExportOverwriteConfirmation: false,
   skipMotionViewJsonExportOverwriteConfirmation: false,
   layoutLeftSidebarWidth: 360,
   layoutRightSidebarWidthViewing: 370,
-  layoutRightSidebarWidthPlanning: 370,
   layoutTimelineHeight: 180,
-  layoutPlanningWaypointHeight: 240,
-  layoutPlanningTimelineHeight: 144,
   appState: {},
 };
 

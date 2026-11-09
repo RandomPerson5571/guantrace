@@ -1,3 +1,4 @@
+import { isMode } from "../modeController";
 import { APP_SHORTCUTS } from "./shortcutCatalog";
 import { hasOpenModal, isTypingTarget, matchesShortcut } from "./shortcutTypes";
 import type { AppCommands } from "./AppCommands";
@@ -21,24 +22,19 @@ export class AppInput {
       command();
       return true;
     };
+    if (matchesShortcut(event, APP_SHORTCUTS.viewingMode))
+      return run(() => this.commands.setViewingMode());
+    if (isMode("sysid")) return false;
     if (matchesShortcut(event, APP_SHORTCUTS.toggleTimeline))
       return run(() => this.commands.toggleTimeline());
     if (matchesShortcut(event, APP_SHORTCUTS.toggleLeftSidebar))
       return run(() => this.commands.toggleLeftSidebar());
     if (matchesShortcut(event, APP_SHORTCUTS.toggleRightSidebar))
       return run(() => this.commands.toggleRightSidebar());
-    if (matchesShortcut(event, APP_SHORTCUTS.viewingMode))
-      return run(() => this.commands.setViewingMode());
-    if (matchesShortcut(event, APP_SHORTCUTS.planningMode))
-      return run(() => this.commands.setPlanningMode());
     if (matchesShortcut(event, APP_SHORTCUTS.openFile))
       return run(() => this.commands.openRoute());
     if (matchesShortcut(event, APP_SHORTCUTS.clearCurrent))
-      return run(() => void this.commands.clearCurrent());
-    if (matchesShortcut(event, APP_SHORTCUTS.clearAll))
-      return run(() => void this.commands.clearAll());
-    if (matchesShortcut(event, APP_SHORTCUTS.togglePlanOverlay))
-      return run(() => this.commands.togglePlanningOverlay());
+      return run(() => this.commands.clearCurrent());
     if (matchesShortcut(event, APP_SHORTCUTS.fitField))
       return run(() => this.commands.fitField());
     return false;

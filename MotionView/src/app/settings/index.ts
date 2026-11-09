@@ -5,7 +5,6 @@ export * from "./SettingsView";
 export * from "./settingsTypes";
 export * from "./bindings/FieldSettingsBinding";
 export * from "./bindings/ViewingSettingsBinding";
-export * from "./bindings/PlanningSettingsBinding";
 export * from "./bindings/LiveSettingsBinding";
 export * from "./bindings/LayoutSettingsBinding";
 export * from "./bindings/TelemetrySettingsBinding";

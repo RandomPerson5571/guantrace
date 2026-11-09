@@ -30,15 +30,6 @@ export async function runReleaseRegressions(server) {
   const { FieldRenderer } = await server.ssrLoadModule(
     "/render/field/FieldRenderer.ts",
   );
-  const { PlanningFeature } = await server.ssrLoadModule(
-    "/planning/PlanningFeature.ts",
-  );
-  const { PlanningCodeExportDialog } = await server.ssrLoadModule(
-    "/planning/PlanningCodeExportDialog.ts",
-  );
-  const { PlanningInput } = await server.ssrLoadModule(
-    "/planning/PlanningInput.ts",
-  );
   const { AppInput } = await server.ssrLoadModule("/app/input/AppInput.ts");
   const { LiveInput } = await server.ssrLoadModule("/live/LiveInput.ts");
   const { ViewingInput } = await server.ssrLoadModule(
@@ -227,83 +218,6 @@ export async function runReleaseRegressions(server) {
     else delete globalThis.navigator;
   }
 
-  try {
-    const planning = new PlanningFeature("move(${x}, ${y});");
-    planning.load({
-      "planned-path": [
-        { x: 0, y: 0 },
-        { x: 10, y: 20 },
-      ],
-    });
-    const dom = Object.fromEntries(
-      [
-        "codeExportHeader",
-        "codeExportFooter",
-        "codeExportPath",
-        "codeExportTarget",
-        "codeExportValidation",
-        "codeExportSuccess",
-        "codeExportConfirm",
-      ].map((name) => [name, field()]),
-    );
-    dom.codeExportTarget.querySelector = () => ({ disabled: false });
-    const writes = [];
-    globalThis.window = {
-      __TAURI_INTERNALS__: {
-        invoke: async (command, args) => {
-          if (command === "resolve_export_directory")
-            return args.projectPath ?? "/Downloads";
-          writes.push(args.path);
-          return { path: args.path };
-        },
-      },
-    };
-    const dialog = new PlanningCodeExportDialog(
-      planning,
-      dom,
-      {},
-      { current: {} },
-    );
-    dom.codeExportTarget.value = "project";
-    dom.codeExportPath.value = "/old-project/src/custom.cpp";
-    dialog.setProjectPath("/new-project");
-    assert.equal(dom.codeExportPath.value, "/new-project/src/custom.cpp");
-    await dialog.export();
-    assert.deepEqual(writes, ["/new-project/src/custom.cpp"]);
-    dialog.applySettings({
-      target: "project",
-      path: "/stale-project/src/restored.cpp",
-    });
-    assert.equal(dom.codeExportPath.value, "/new-project/src/restored.cpp");
-    dom.codeExportTarget.value = "custom";
-    dom.codeExportPath.value = "/my/location/chosen.cpp";
-    dialog.setProjectPath("/third-project");
-    assert.equal(dom.codeExportPath.value, "/my/location/chosen.cpp");
-    dom.codeExportTarget.value = "project";
-    dialog.setProjectPath("C:\\robot");
-    assert.equal(dom.codeExportPath.value, "C:\\robot\\src\\chosen.cpp");
-    dom.codeExportTarget.value = "downloads";
-    let resolveDirectory;
-    window.__TAURI_INTERNALS__.invoke = () =>
-      new Promise((resolve) => {
-        resolveDirectory = resolve;
-      });
-    const filling = dialog.fillTargetPath();
-    dom.codeExportTarget.value = "project";
-    dialog.setProjectPath("/latest-project");
-    resolveDirectory("/Downloads");
-    await filling;
-    assert.equal(
-      dom.codeExportPath.value,
-      "/latest-project/src/chosen.cpp",
-      "an old directory response must not replace the current project's destination",
-    );
-    dialog.setProjectPath("");
-    assert.equal(dom.codeExportPath.value, "");
-  } finally {
-    if (originalWindow === undefined) delete globalThis.window;
-    else globalThis.window = originalWindow;
-  }
   {
     const originalDocument = globalThis.document;
     const previousMode = getMode();
@@ -328,8 +242,6 @@ export async function runReleaseRegressions(server) {
         defaultPrevented: false,
         preventDefault: fail,
       };
-      setMode("planning");
-      assert.equal(new PlanningInput({}, {}, {}).handleKeydown(event), false);
       assert.equal(new AppInput(commands).handleKeydown(event), false);
       setMode("viewing");
       assert.equal(new ViewingInput({}, {}).handleKeydown(event), false);
@@ -341,6 +253,6 @@ export async function runReleaseRegressions(server) {
     }
   }
   console.log(
-    "Release regression checks passed (large watches, imports/playback, identities, formatting, opacity, export targets, modal guards, window reset).",
+    "Release regression checks passed (large watches, imports/playback, identities, formatting, opacity, modal guards, window reset).",
   );
 }

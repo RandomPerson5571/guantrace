@@ -1,3 +1,4 @@
+import { parseDeviceReading } from "../brain/deviceTelemetry";
 import type {
   LogEntry,
   Pose,
@@ -95,6 +96,7 @@ const ODOM_PROVIDER_NAMES: Readonly<Record<number, string>> = {
   5: "okapi",
 };
 
+
 function parseRunStart(line: string): LiveRunStart | null {
   const parts = parseCsvLine(line);
   const robotStartTimestampMs =
@@ -137,7 +139,16 @@ function parseRunStart(line: string): LiveRunStart | null {
 }
 
 export class LiveLineParser {
-  classify(line: string): string {
+  classify(line: string, reading = parseDeviceReading(line)): string {
+    if (reading?.kind === "motor" &&
+        (reading.metric === "rpm" || reading.metric === "power_w")) {
+      const { port, metric, timeMs, value } = reading;
+      const power = metric === "power_w";
+      // Reserve IDs above the native MVLib watch ID range.
+      const id = 0x1_0000 + port * 2 + Number(power);
+      const label = `Motor ${port} ${power ? "power (W)" : "velocity (RPM)"}`;
+      return formatCsvLine(["[WATCH]", timeMs, "INFO", id, label, value]);
+    }
     return stripToTag(line);
   }
 

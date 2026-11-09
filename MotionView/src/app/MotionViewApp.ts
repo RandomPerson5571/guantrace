@@ -1,7 +1,6 @@
 import { EXIT_TELEMETRY_FLUSH_DEADLINE_MS } from "../telemetry/telemetryClient";
 import type { TelemetryProperties } from "../telemetry/telemetryTypes";
 import { ViewingFeature } from "../viewing/ViewingFeature";
-import { PlanningFeature } from "../planning/PlanningFeature";
 import { LiveFeature } from "../live/LiveFeature";
 import type { AppExitReason, AppLifecycleState } from "./appEvents";
 import { CoreServices } from "./coreServices";
@@ -11,9 +10,9 @@ import { MotionViewDocumentSerializer } from "./persistence/MotionViewDocumentSe
 export class MotionViewApp {
   readonly core = new CoreServices();
   readonly viewing = new ViewingFeature();
-  readonly planning = new PlanningFeature();
   readonly live = new LiveFeature(this.viewing, this.core.bridge);
   readonly settings = new SettingsFeature();
+  legacyPlanningData: Readonly<Record<string, unknown>> = {};
 
   #lifecycle: AppLifecycleState = "created";
   #lifecycleBeforeExit: AppLifecycleState = "created";

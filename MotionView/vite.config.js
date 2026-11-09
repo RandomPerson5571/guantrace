@@ -1,22 +1,22 @@
 import { defineConfig } from "vite";
 import { resolve } from "node:path";
+import tauriConfig from "./src-tauri/tauri.conf.json";
 
-const host = "127.0.0.1";
-const port = 1420;
+const devUrl = new URL(tauriConfig.build.devUrl);
+const host = devUrl.hostname;
+const port = Number(devUrl.port);
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   root: resolve(__dirname, "src"),
   base: "./",
   publicDir: false,
   server: {
     host,
-    port,
-    strictPort: true,
+    port: mode === "tauri" ? port : undefined,
+    strictPort: mode === "tauri",
   },
   preview: {
     host,
-    port,
-    strictPort: true,
   },
   build: {
     target: "esnext",
@@ -25,7 +25,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, "src/index.html"),
+        brainGraph: resolve(__dirname, "src/brain-graph.html"),
       },
     },
   },
-});
+}));

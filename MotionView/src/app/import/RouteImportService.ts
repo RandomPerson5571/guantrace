@@ -1,5 +1,4 @@
 import type { MotionViewApp } from "../MotionViewApp";
-import type { PlanningDialogs } from "../../planning";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
   buildWaypointState,
@@ -47,10 +46,6 @@ function assertArrayLimit(value: unknown, name: string): void {
 
 function assertDocumentLimits(record: Record<string, unknown>): void {
   for (const name of [
-    "planned-path",
-    "planned-paths",
-    "planned-objects",
-    "planned-nodes",
     "poses",
     "robot-path",
     "watches",
@@ -61,32 +56,6 @@ function assertDocumentLimits(record: Record<string, unknown>): void {
   ]) {
     assertArrayLimit(record[name], name);
   }
-
-  for (const path of Array.isArray(record["planned-paths"])
-    ? record["planned-paths"]
-    : []) {
-    if (!path || typeof path !== "object") continue;
-    const route = path as Record<string, unknown>;
-    assertArrayLimit(route["planned-path"], "planned path");
-    assertArrayLimit(route["planned-nodes"], "planned path nodes");
-  }
-
-  let methodCount = 0;
-  for (const object of Array.isArray(record["planned-objects"])
-    ? record["planned-objects"]
-    : []) {
-    const methods =
-      object && typeof object === "object"
-        ? (object as Record<string, unknown>).methods
-        : undefined;
-    if (!Array.isArray(methods)) continue;
-    methodCount += methods.length;
-    if (methodCount > MAX_IMPORT_ITEMS) {
-      throw new Error(
-        `planned objects contain more than ${MAX_IMPORT_ITEMS.toLocaleString()} methods`,
-      );
-    }
-  }
 }
 
 export class RouteImportService {
@@ -94,7 +63,6 @@ export class RouteImportService {
 
   constructor(
     private readonly app: MotionViewApp,
-    private readonly dialogs: PlanningDialogs,
     private readonly topBar: TopBarView,
     private readonly demoRouteUrl: string,
   ) {}
@@ -227,34 +195,9 @@ export class RouteImportService {
       throw new Error("Invalid JSON: missing data object");
     const record = document as Record<string, unknown>;
     assertDocumentLimits(record);
-    const planning =
-      (Array.isArray(record["planned-path"]) &&
-        record["planned-path"].length > 0) ||
-      (Array.isArray(record["planned-paths"]) &&
-        record["planned-paths"].some(
-          (path) =>
-            !!path &&
-            typeof path === "object" &&
-            Array.isArray((path as Record<string, unknown>)["planned-path"]),
-        ));
-    const viewing = this.hasViewing(record);
-    if (
-      planning &&
-      this.app.planning.hasData &&
-      !(await this.dialogs.confirm({
-        title: "Replace Planning Route",
-        message:
-          "This import contains planning points and will replace the current planning route. Continue?",
-        confirmLabel: "Replace",
-      }))
-    ) {
-      this.app.core.status.setStatus("Import cancelled.");
-      return { type: "json-cancelled", loaded: false };
-    }
-    if (planning) this.app.planning.load(document);
-    if (viewing) this.app.viewing.load(document);
-    if (!planning && !viewing)
-      throw new Error("Invalid JSON: no viewing or planning route data found");
+    if (!this.hasViewing(record))
+      throw new Error("Invalid JSON: no recorded run data found");
+    this.app.viewing.load(document);
     this.finalize();
     return { type: "json", loaded: true };
   }
@@ -264,9 +207,6 @@ export class RouteImportService {
       throw new Error("Capture is too large to import");
     if (!this.app.live.captureHasData(text))
       throw new Error("No poses, watches, logs, or waypoints found in file.");
-    // Capture files only carry viewing telemetry. Preserve the user's planning
-    // route; a JSON import with planned-path data is the explicit replacement
-    // path and handles its own confirmation above.
     this.app.live.loadCapture(text);
     this.finalize();
     return { type: "text", loaded: true };
@@ -297,7 +237,7 @@ export class RouteImportService {
   }
 
   get hasData(): boolean {
-    return this.app.viewing.data.hasData || this.app.planning.hasData;
+    return this.app.viewing.data.hasData;
   }
 
   private hasViewing(record: Record<string, unknown>): boolean {

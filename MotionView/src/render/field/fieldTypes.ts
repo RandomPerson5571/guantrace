@@ -37,10 +37,3 @@ export interface ViewingFieldLayer {
   drawOverlay(): void;
   drawWaypointOffset(pose: FieldPose): void;
 }
-
-export interface PlanningFieldLayer {
-  readonly overlayVisible: boolean;
-  currentPose(): FieldPose | null;
-  drawOverlay(force?: boolean): void;
-  drawSelection(): void;
-}

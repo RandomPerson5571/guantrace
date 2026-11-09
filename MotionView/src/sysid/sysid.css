@@ -1,0 +1,70 @@
+.sysidPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: calc(100dvh - var(--topbarH));
+  overflow: auto;
+  padding: clamp(14px, 2.5vw, 28px);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+}
+.sysidPanel > * { flex-shrink: 0; }
+.sysidPanel h1, .sysidPanel h3, .sysidPanel p { margin: 0; }
+.sysidPanel h1 { font-size: clamp(20px, 3vw, 28px); }
+.sysidPanel h3 { font-size: 14px; }
+.sysidPanel p, .sysidPanel li { line-height: 1.45; }
+.sysidPanel ul { margin: 4px 0 0; padding-inline-start: 18px; }
+.sysidPanel details > * + * { margin-top: 10px; }
+.sysidPanel .sysidRow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.sysidPanel label { display: inline-flex; gap: 5px; align-items: center; }
+.sysidPanel button, .sysidPanel select, .sysidPanel input[type="number"] {
+  font: inherit;
+  color: inherit;
+  background: #242b38;
+  border: 1px solid #4a5569;
+  border-radius: 6px;
+  padding: 5px 8px;
+}
+.sysidPanel button:disabled { opacity: .5; }
+.sysidPanel button[aria-pressed="true"] { border-color: #8eb8ff; }
+.sysidPanel input[type="number"] { width: 95px; }
+.sysidPanel .sysidPlot {
+  flex: 1 0 clamp(200px, 40dvh, 360px);
+  min-height: 0;
+  min-width: 0;
+  position: relative;
+}
+.sysidPanel .sysidMetrics { display: flex; flex-wrap: wrap; gap: 8px; }
+.sysidPanel .sysidMetrics > div {
+  flex: 1 1 210px;
+  background: #202631;
+  border: 1px solid #394252;
+  border-radius: 6px;
+  padding: 8px;
+}
+.sysidPanel .sysidError { color: #ffd0ae; }
+
+.sysidPanel form {
+  border: 1px solid #424956;
+  border-radius: 6px;
+  padding: 8px;
+}
+.sysidPanel form > * + * { margin-top: 8px; }
+.sysidPanel form input[type="text"] {
+  font: inherit;
+  color: inherit;
+  background: #242b38;
+  border: 1px solid #4a5569;
+  border-radius: 6px;
+  padding: 5px 8px;
+}
+.sysidMappingFields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+  gap: 6px 10px;
+}
+.sysidPanel .sysidMappingFields label { display: grid; }
+.sysidMappingFields select, .sysidMappingFields input { min-width: 0; }
+.sysidPanel[hidden], .sysidPanel [hidden] { display: none !important; }
+#sysidMessage:empty, #sysidHealth:empty, #sysidMetrics:empty { display: none; }

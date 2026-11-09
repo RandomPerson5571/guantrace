@@ -184,6 +184,68 @@ export async function runLiveShutdownRegressions(server) {
   };
 
   try {
+    const fixture = await make(0);
+    try {
+      const sysId = [];
+      fixture.events.sysIdBatch.subscribe(line => sysId.push(line));
+      const telemetry = [
+        "GT1,21,42,sysid.left.volts,3.25",
+        '[SYSID],{"runId":"custom"}',
+        "[SYSID],GT1,21,43,sysid.profile,1",
+        "[SYSID],GT1W,22,L,21,0,1,0.000,0,0,0,0",
+      ];
+      fixture.send(telemetry);
+      assert.deepEqual(sysId, telemetry);
+      assert.equal(fixture.stream.pendingLineCount, 0);
+      const motors = [
+        "GT1,22,43,drive.motor.3.rpm,-120.5",
+        "GT1,22,44,drive.motor.3.power_w,8.75",
+        "GT1,122,57,drive.motor.3.rpm,-131",
+      ];
+      const devices = [];
+      fixture.events.deviceReading.subscribe(reading => devices.push(reading));
+      fixture.send([
+        "GT1,21,41,device.motor.3.present,1",
+        ...motors,
+        "GT1,122,58,drive.motor.3.power_w,0",
+        "GT1,122,59,device.distance.18.distance_mm,155",
+        "GT1,222,60,drive.motor.1.rpm,-0",
+        "GT1,322,61,drive.motor.1.rpm,-58.6",
+        "GT1,422,62,drive.motor.1.rpm,0",
+      ]);
+      assert.deepEqual(sysId, telemetry);
+      assert.deepEqual(devices.map(({ kind, port, metric, value }) => [kind, port, metric, value]), [
+        ["motor", 3, "present", 1],
+        ["motor", 3, "rpm", -120.5],
+        ["motor", 3, "power_w", 8.75],
+        ["motor", 3, "rpm", -131],
+        ["motor", 3, "power_w", 0],
+        ["distance", 18, "distance_mm", 155],
+        ["motor", 1, "rpm", 0],
+        ["motor", 1, "rpm", -58.6],
+        ["motor", 1, "rpm", 0],
+      ]);
+      await fixture.stream.stop();
+      const watches = fixture.viewing.data.watches;
+      assert.deepEqual(watches.map(({ t, label, value }) => [t, label, value]), [
+        [22, "Motor 3 velocity (RPM)", "-120.5"],
+        [22, "Motor 3 power (W)", "8.75"],
+        [122, "Motor 3 velocity (RPM)", "-131"],
+        [122, "Motor 3 power (W)", "0"],
+        [222, "Motor 1 velocity (RPM)", "0"],
+        [322, "Motor 1 velocity (RPM)", "-58.6"],
+        [422, "Motor 1 velocity (RPM)", "0"],
+      ]);
+      assert.equal(watches[0].id, watches[2].id);
+      assert.notEqual(watches[0].id, watches[1].id);
+      assert.equal(fixture.viewing.data.poses.length, 0);
+      fixture.send(telemetry);
+      assert.deepEqual(sysId, telemetry);
+      scenarios += 1;
+    } finally {
+      await fixture.close();
+    }
+
     for (const interval of [0, 500, 10_000]) {
       const fixture = await make(interval);
       try {

@@ -36,10 +36,4 @@ export class ViewingTelemetry {
     return this.telemetry.capture("toggle_floating_info", properties, options);
   }
 
-  planOverlayToggled(
-    properties: TelemetryProperties = {},
-    options: TelemetryCaptureOptions = { debounceMs: 1000 },
-  ) {
-    return this.telemetry.capture("toggle_plan_overlay", properties, options);
-  }
 }

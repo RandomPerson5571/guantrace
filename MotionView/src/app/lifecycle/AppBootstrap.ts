@@ -5,14 +5,13 @@ import type {
   FieldSettingsBinding,
   LayoutSettingsBinding,
   LiveSettingsBinding,
-  PlanningSettingsBinding,
   TelemetrySettingsBinding,
   ViewingSettingsBinding,
 } from "../settings";
 import type { SessionPersistence } from "../persistence";
 import type { RouteImportService } from "../import";
 import type { ViewingLayoutView } from "../../viewing/render/ViewingLayoutView";
-import type { PlanningDialogs } from "../../planning/PlanningDialogs";
+import type { ConfirmationDialog } from "../dialogs/ConfirmationDialog";
 
 export class AppBootstrap {
   constructor(
@@ -21,25 +20,22 @@ export class AppBootstrap {
     private readonly topBar: TopBarView,
     private readonly fieldSettings: FieldSettingsBinding,
     private readonly viewingSettings: ViewingSettingsBinding,
-    private readonly planningSettings: PlanningSettingsBinding,
     private readonly liveSettings: LiveSettingsBinding,
     private readonly layoutSettings: LayoutSettingsBinding,
     private readonly telemetrySettings: TelemetrySettingsBinding,
     private readonly persistence: SessionPersistence,
     private readonly importer: RouteImportService,
     private readonly viewingLayout: ViewingLayoutView,
-    private readonly dialogs: PlanningDialogs,
+    private readonly dialogs: ConfirmationDialog,
   ) {}
   async start(): Promise<void> {
     await this.app.settings.load();
     this.fieldSettings.bind();
     this.viewingSettings.bind();
-    this.planningSettings.bind();
     this.liveSettings.bind();
     this.telemetrySettings.bind();
     await this.fieldSettings.applyAll();
     this.viewingSettings.applyAll();
-    this.planningSettings.applyAll();
     this.liveSettings.applyAll();
     this.layoutSettings.apply();
     this.telemetrySettings.applyAll();
@@ -53,10 +49,7 @@ export class AppBootstrap {
     this.topBar.render();
     this.field.loadRobotImage();
     await appStartup;
-    await this.app.markReady({
-      plan_saved: this.app.planning.route.length > 0,
-      plan_points: this.app.planning.route.length,
-    });
+    await this.app.markReady();
     if (this.app.core.tauri.isTauriRuntime()) {
       try {
         const notices = await this.app.core.tauri.takePersistenceNotices();

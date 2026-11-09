@@ -15,7 +15,6 @@ export class ExportService {
     overwrite = false,
   ): Promise<Readonly<{ path: string; json: string }>> {
     const payload = this.serializer.exportPayload(
-      request.exportType,
       request.pathName,
       this.app.settings.current,
     );
@@ -27,26 +26,16 @@ export class ExportService {
       jsonContents: json,
       overwrite,
     });
-    const planning = request.exportType !== "viewing";
-    const viewing = request.exportType !== "planning";
-    void exportTelemetry.motionviewJsonExported(
-      this.app.planning.telemetryProperties({
-        export_type: request.exportType,
-        includes_planning: planning,
-        includes_viewing: viewing,
-        export_location: request.destination.kind,
-        exported_viewing_poses: viewing
-          ? this.app.viewing.data.poses.length
-          : 0,
-        exported_viewing_watches: viewing
-          ? this.app.viewing.data.watches.length
-          : 0,
-        exported_viewing_logs: viewing ? this.app.viewing.data.logs.length : 0,
-        exported_viewing_waypoints: viewing
-          ? this.app.viewing.data.waypoints.length
-          : 0,
-      }),
-    );
+    void exportTelemetry.motionviewJsonExported({
+      export_type: "viewing",
+      includes_planning: false,
+      includes_viewing: true,
+      export_location: request.destination.kind,
+      exported_viewing_poses: this.app.viewing.data.poses.length,
+      exported_viewing_watches: this.app.viewing.data.watches.length,
+      exported_viewing_logs: this.app.viewing.data.logs.length,
+      exported_viewing_waypoints: this.app.viewing.data.waypoints.length,
+    });
     return { path: result.path, json };
   }
 }

@@ -1,3 +1,6 @@
+import { ConfirmationDialog } from "./app/dialogs/ConfirmationDialog";
+import { SysIdView } from "./sysid/SysIdView";
+import { BrainView } from "./brain/BrainView";
 import demoRouteUrl from "./assets/demo/getting-started-route.json?url";
 import { initializeMotionViewApp } from "./app/appRuntime";
 import { HelpDom, HelpView } from "./app/help";
@@ -12,7 +15,6 @@ import {
   FieldSettingsBinding,
   LayoutSettingsBinding,
   LiveSettingsBinding,
-  PlanningSettingsBinding,
   SettingsDom,
   SettingsView,
   TelemetrySettingsBinding,
@@ -23,18 +25,9 @@ import { WindowController } from "./app/window";
 import { installGlobalErrorReporting } from "./app/globalErrors";
 import { requiredElement } from "./dom/elements";
 import { LiveDom, LiveInput, LiveView } from "./live";
-import {
-  PlanningCodeExportDialog,
-  PlanningDialogs,
-  PlanningDom,
-  PlanningInput,
-  PlanningView,
-} from "./planning";
-import { PlanningLayoutView } from "./planning/render/PlanningLayoutView";
 import { FieldRenderer } from "./render/field";
 import {
   configureRenderScheduler,
-  registerPlanningRenderLayer,
   registerViewingRenderLayer,
 } from "./render/renderScheduler";
 import { ViewingDom, ViewingInput, ViewingView } from "./viewing";
@@ -48,18 +41,11 @@ fieldRenderer.bindInput();
 
 const topBar = new TopBarView(app, fieldRenderer, TopBarDom.from());
 
-const planningDom = PlanningDom.from();
-const planningDialogs = new PlanningDialogs(planningDom);
-const planningCodeExportDialog = new PlanningCodeExportDialog(app.planning, planningDom, planningDialogs, app.settings);
-const planningView = new PlanningView(app.planning, fieldRenderer, planningDom, planningDialogs);
-const planningInput = new PlanningInput(app.planning, fieldRenderer, planningDialogs);
-
 const viewingView = new ViewingView(app.viewing, fieldRenderer, ViewingDom.from());
 const viewingInput = new ViewingInput(app.viewing, viewingView);
 const liveView = new LiveView(app.live, LiveDom.from());
 const liveInput = new LiveInput(app.live);
 
-const planningLayout = new PlanningLayoutView(fieldRenderer, planningView);
 const viewingLayout = new ViewingLayoutView(fieldRenderer, viewingView);
 
 const settingsDom = SettingsDom.from();
@@ -67,21 +53,21 @@ const windowController = new WindowController();
 const settingsView = new SettingsView(fieldRenderer, settingsDom);
 const fieldSettings = new FieldSettingsBinding(app.settings, fieldRenderer, topBar, settingsDom);
 const viewingSettings = new ViewingSettingsBinding(app.settings, app.viewing, settingsDom);
-const planningSettings = new PlanningSettingsBinding(app.settings, app.planning, planningView, fieldRenderer, planningCodeExportDialog, settingsDom);
 const liveSettings = new LiveSettingsBinding(app.settings, app.live);
-const layoutSettings = new LayoutSettingsBinding(app.settings, planningLayout, viewingLayout);
+const layoutSettings = new LayoutSettingsBinding(app.settings, viewingLayout);
 const telemetrySettings = new TelemetrySettingsBinding(app.settings, app.core.telemetry.telemetryClient, settingsDom);
 
+const confirmationDialog = new ConfirmationDialog();
 const serializer = new MotionViewDocumentSerializer(app);
 const helpView = new HelpView(app, HelpDom.from(), serializer);
 const persistence = new SessionPersistence(app, serializer);
-const importer = new RouteImportService(app, planningDialogs, topBar, demoRouteUrl);
-const exportDialog = new ExportDialog(app, ExportDom.from(), new ExportService(app, serializer), planningDialogs);
+const importer = new RouteImportService(app, topBar, demoRouteUrl);
+const exportDialog = new ExportDialog(app, ExportDom.from(), new ExportService(app, serializer), confirmationDialog);
 const routeInfoView = new RouteInfoView(app, RouteInfoDom.from());
 
-const appCommands = new AppCommands(app, fieldRenderer, topBar, planningDialogs, planningLayout, viewingLayout);
+const appCommands = new AppCommands(app, fieldRenderer, topBar, viewingLayout);
 const appInput = new AppInput(appCommands);
-const modeCoordinator = new ModeCoordinator(app, fieldRenderer, planningLayout, viewingLayout);
+const modeCoordinator = new ModeCoordinator(app, fieldRenderer, viewingLayout);
 const shutdown = new AppShutdown(app, fieldRenderer, persistence);
 const bootstrap = new AppBootstrap(
   app,
@@ -89,80 +75,53 @@ const bootstrap = new AppBootstrap(
   topBar,
   fieldSettings,
   viewingSettings,
-  planningSettings,
   liveSettings,
   layoutSettings,
   telemetrySettings,
   persistence,
   importer,
   viewingLayout,
-  planningDialogs,
+  confirmationDialog,
 );
 
 configureRenderScheduler({ drawField: () => fieldRenderer.draw() });
-fieldRenderer.registerPlanningLayer(planningView);
 fieldRenderer.registerViewingLayer(viewingView.fieldLayer);
-registerPlanningRenderLayer(planningView);
 registerViewingRenderLayer(viewingView.timelineLayer);
 
-planningDialogs.bind();
-planningCodeExportDialog.bind();
-planningCodeExportDialog.changed.subscribe((settings) =>
-  app.planning.paths.updateCodeExportSettings(settings),
-);
-app.planning.events.documentChanged.subscribe(({ kind }) => {
-  if (
-    kind === "imported" ||
-    kind === "path" ||
-    kind === "history" ||
-    kind === "cleared"
-  ) {
-    planningCodeExportDialog.applySettings(
-      app.planning.paths.codeExportSettings,
-    );
-  }
-});
-planningView.bind();
-planningInput.bind();
+confirmationDialog.bind();
 viewingView.bind();
 viewingInput.bind();
 liveView.bind();
 liveInput.bind();
-planningLayout.bind();
+new SysIdView(app.live.events, app.viewing, app.core.bridge);
+new BrainView(app.live);
 viewingLayout.bind();
 settingsView.bind();
 topBar.bind();
 helpView.bind();
 exportDialog.bind();
 routeInfoView.bind();
-appCommands.bind();
 appInput.bind();
 modeCoordinator.bind();
 windowController.bind();
 persistence.bind();
 importer.bindFileDrop();
 
-planningLayout.changed.subscribe(() => layoutSettings.capture());
 viewingLayout.changed.subscribe(() => layoutSettings.capture());
 settingsView.robotImageRequested.subscribe(() => topBar.openRobotImagePicker());
 settingsView.customFieldImageRequested.subscribe(() => topBar.openCustomFieldImagePicker());
-app.live.events.projectChanged.subscribe(() => {
-  planningCodeExportDialog.setProjectPath(app.live.project.valid ? app.live.project.path : "");
-});
-
 topBar.events.actionRequested.subscribe((action) => {
   if (action.kind === "native-route-file-requested") void importer.openNativeFile();
   else if (action.kind === "file-selected") void importer.openFile(action.file, action.input);
   else if (action.kind === "robot-image-selected") void fieldSettings.handleRobotImageFile(action.file, action.input);
   else if (action.kind === "custom-field-image-selected") void fieldSettings.handleCustomFieldImageFile(action.file, action.input);
-  else if (action.kind === "clear-requested") void (action.clearAll ? appCommands.clearAll() : appCommands.clearCurrent());
+  else if (action.kind === "clear-requested") appCommands.clearCurrent();
   else if (action.kind === "settings-requested") {
     if (app.live.project.path && !app.live.project.valid) void app.live.project.validate();
     settingsView.open();
   } else if (action.kind === "help-requested") helpView.open();
 });
 
-planningView.render();
 viewingView.render();
 await shutdown.bind();
 await bootstrap.start();

@@ -1,3 +1,4 @@
+import type { AppMode } from "../app/modeController";
 import type { TelemetryClient } from "./telemetryClient";
 
 const FEEDBACK_RATE_LIMIT_MS = 5 * 60 * 1000;
@@ -15,7 +16,7 @@ export type FeedbackType =
   | "bug_report"
   | "feature_request"
   | "general_feedback";
-export type FeedbackArea = "viewing" | "planning" | "other";
+export type FeedbackArea = "viewing" | "other";
 
 export interface FeedbackSubmission {
   readonly description: string;
@@ -23,7 +24,7 @@ export interface FeedbackSubmission {
   readonly feedbackType: FeedbackType;
   readonly area: FeedbackArea | null;
   readonly routeJson: string | null;
-  readonly appMode: "viewing" | "planning";
+  readonly appMode: AppMode;
   readonly submittedAt: string;
 }
 

@@ -508,17 +508,12 @@ try {
   }
 
   {
-    let planningCleared = false;
     let captureLoaded = false;
     let fieldEnabled = false;
+    const viewing = new ViewingFeature();
     const importer = new RouteImportService(
       {
-        planning: {
-          hasData: true,
-          clear() {
-            planningCleared = true;
-          },
-        },
+        viewing,
         live: {
           captureHasData: () => true,
           loadCapture() {
@@ -526,7 +521,6 @@ try {
           },
         },
       },
-      {},
       {
         setFieldEnabled() {
           fieldEnabled = true;
@@ -538,12 +532,19 @@ try {
     const result = await importer.loadCapture("[POSE],0,1,2,0,0,0");
     assert.equal(result.loaded, true);
     assert.equal(captureLoaded, true);
-    assert.equal(
-      planningCleared,
-      false,
-      "viewing-only captures must preserve the planning route",
-    );
     assert.equal(fieldEnabled, true);
+
+    const plannedPath = [{ x: 5, y: 6 }];
+    await importer.loadDocument({
+      "planned-path": plannedPath,
+      poses: [{ x: 1, y: 2 }],
+    });
+    assert.equal(viewing.data.poses[0].x, 1);
+    await assert.rejects(
+      importer.loadDocument({ "planned-path": plannedPath }),
+      /no recorded run data/,
+    );
+    assert.equal(viewing.data.poses[0].x, 1);
   }
 
   await runLiveShutdownRegressions(server);

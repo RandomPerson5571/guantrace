@@ -1,4 +1,5 @@
 import { TypedEvent } from "../app/typedEvent";
+import type { DeviceReading } from "../brain/deviceTelemetry";
 import type {
   LiveBatchAcceptedEvent,
   LiveConnectionChangedEvent,
@@ -14,6 +15,8 @@ export class LiveEvents {
   readonly streamChanged = new TypedEvent<LiveStreamChangedEvent>();
   readonly projectChanged = new TypedEvent<LiveProjectChangedEvent>();
   readonly preferencesChanged = new TypedEvent<LivePreferencesChangedEvent>();
+  readonly sysIdBatch = new TypedEvent<string>();
+  readonly deviceReading = new TypedEvent<DeviceReading>();
   readonly consoleChanged = new TypedEvent<LiveConsoleEvent>();
   readonly batchAccepted = new TypedEvent<LiveBatchAcceptedEvent>();
   readonly notice = new TypedEvent<LiveNoticeEvent>();

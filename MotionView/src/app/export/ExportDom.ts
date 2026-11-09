@@ -10,7 +10,6 @@ export class ExportDom {
   readonly filename: HTMLInputElement;
   readonly filenameHint: HTMLElement;
   readonly location: HTMLSelectElement;
-  readonly type: HTMLSelectElement;
   readonly customWrap: HTMLElement;
   readonly customPath: HTMLInputElement;
   readonly customHint: HTMLElement;
@@ -27,7 +26,6 @@ export class ExportDom {
     this.filename = requiredElement("exportFilename", HTMLInputElement, document);
     this.filenameHint = requiredElement("exportFilenameHint", HTMLElement, document);
     this.location = requiredElement("exportLocation", HTMLSelectElement, document);
-    this.type = requiredElement("exportTypes", HTMLSelectElement, document);
     this.customWrap = requiredElement("exportCustomPathWrap", HTMLElement, document);
     this.customPath = requiredElement("exportCustomPath", HTMLInputElement, document);
     this.customHint = requiredElement("exportCustomPathHint", HTMLElement, document);

@@ -5,8 +5,8 @@
   "identifier": "com.motionview.motionview",
   "build": {
     "frontendDist": "../dist",
-    "devUrl": "http://127.0.0.1:1420",
-    "beforeDevCommand": "pnpm dev:web",
+    "devUrl": "http://127.0.0.1:1457",
+    "beforeDevCommand": "pnpm dev:web --mode tauri",
     "beforeBuildCommand": "pnpm build:web"
   },
   "app": {

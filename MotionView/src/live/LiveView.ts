@@ -1,3 +1,4 @@
+import { subscribeMode } from "../app/modeController";
 import { setStatus } from "../app/status";
 import { LiveConsoleBuffer } from "./liveConsole";
 import type { LiveDom } from "./LiveDom";
@@ -19,6 +20,17 @@ export class LiveView {
   bind(): void {
     if (this.#bound) return;
     this.#bound = true;
+    subscribeMode((mode) => {
+      const output = mode === "sysid" ? this.dom.sysIdTerminalOutput
+        : mode === "brain" ? this.dom.brainTerminalOutput
+        : this.dom.viewingTerminalOutput;
+      const terminal = this.dom.console;
+      if (!output || !terminal || terminal.parentElement === output) return;
+      output.appendChild(terminal);
+      requestAnimationFrame(() => {
+        terminal.scrollTop = terminal.scrollHeight;
+      });
+    });
     this.live.events.connectionChanged.subscribe(() => this.renderControls());
     this.live.events.streamChanged.subscribe(() => this.renderControls());
     this.live.events.projectChanged.subscribe((event) => {
@@ -48,6 +60,10 @@ export class LiveView {
     });
 
     this.dom.startStopButton?.addEventListener(
+      "click",
+      (event) => void this.toggleStream(event),
+    );
+    this.dom.sysIdStreamButton?.addEventListener(
       "click",
       (event) => void this.toggleStream(event),
     );
@@ -100,12 +116,14 @@ export class LiveView {
     const busy = connectionBusy || streamBusy;
     const streaming =
       this.live.stream.streaming || this.live.stream.state === "stopping";
-    if (this.dom.startStopButton) {
-      this.dom.startStopButton.disabled =
+    for (const button of [this.dom.startStopButton, this.dom.sysIdStreamButton]) {
+      if (!button) continue;
+      button.disabled =
         busy || (!this.live.project.valid && !this.live.connection.connected);
-      this.dom.startStopButton.textContent = streaming ? "Stop" : "Start";
-      this.dom.startStopButton.classList.toggle("isOn", streaming);
-      this.dom.startStopButton.title = this.dom.startStopButton.disabled
+      const action = streaming ? "Stop" : "Start";
+      button.textContent = button === this.dom.sysIdStreamButton ? action + " stream" : action;
+      button.classList.toggle("isOn", streaming);
+      button.title = button.disabled
         ? this.disabledStreamTooltip()
         : streaming
           ? "Stop streaming. Cmd/Ctrl+Click to force kill."

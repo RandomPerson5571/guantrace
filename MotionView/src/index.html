@@ -29,12 +29,12 @@
           </button>
         </div>
         <div class="topBarControlGroup" aria-label="File controls">
-          <button id="btnFile" class="iconBtn" title="Open File">
+          <button id="btnFile" class="iconBtn" title="Open recorded run">
             <svg width="22" height="22">
               <use href="./assets/svg/viewing/fileOpen.svg#icon-fileOpen" style="color: #c8c8c8"></use>
             </svg>
           </button>
-          <button id="btnExport" class="iconBtn" title="Export">
+          <button id="btnExport" class="iconBtn" title="Export recorded run">
             <svg width="18" height="18">
               <use href="./assets/svg/export/exportPath.svg#icon-exportPath" style="color: #ffffff"></use>
             </svg>
@@ -56,13 +56,15 @@
       <div class="topBarCenter">
         <div class="modeToggle" role="tablist" aria-label="Mode selector">
           <button id="modeViewing" class="modeBtn isActive" role="tab" aria-selected="true"
-            data-mode="viewing">Viewing</button>
-          <button id="modePlanning" class="modeBtn" role="tab" aria-selected="false"
-            data-mode="planning">Planning</button>
+            aria-controls="fieldWorkspace" data-mode="viewing">Viewing</button>
+          <button id="modeBrain" class="modeBtn" role="tab" aria-selected="false"
+            aria-controls="brainPanel" data-mode="brain" tabindex="-1">Brain</button>
+          <button id="modeSysId" class="modeBtn" role="tab" aria-selected="false"
+            aria-controls="sysidPanel" data-mode="sysid" tabindex="-1">SysId</button>
         </div>
       </div>
       <div class="topBarRight">
-        <button id="btnPlay" class="iconBtn" title="Play/Pause" disabled>▶</button>
+        <button id="btnPlay" class="iconBtn" title="Play/Pause" aria-label="Play or pause" disabled>▶</button>
         <div class="chip">
           <span class="muted">Speed</span>
           <select id="speedSelect" class="settingsSelect toolbarSelect" title="Playback Speed Changer">
@@ -83,6 +85,94 @@
       </div>
     </div>
   </header>
+
+  <section id="brainPanel" class="brainPanel" role="tabpanel" aria-labelledby="modeBrain" hidden>
+    <aside class="brainSidebar" aria-label="Smart port devices">
+      <h2>Devices</h2>
+      <p id="brainEmpty">Start the stream to discover devices.</p>
+      <ul id="brainDevices"></ul>
+    </aside>
+    <div class="brainMain">
+      <header class="brainHeader">
+        <div>
+          <h1 id="brainTitle">Brain</h1>
+          <p id="brainStatus" role="status">Stream stopped</p>
+        </div>
+        <button id="brainStream" type="button">Start stream</button>
+      </header>
+      <section class="brainTerminal" aria-labelledby="brainTerminalTitle">
+        <h2 id="brainTerminalTitle">Terminal</h2>
+        <div id="brainTerminalOutput" class="brainTerminalOutput"></div>
+      </section>
+      <p>Select a device to open its graphs.</p>
+      <p id="brainWindowError" role="alert" hidden>Couldn’t open the graph window.</p>
+    </div>
+  </section>
+
+  <section id="sysidPanel" class="sysidPanel" role="tabpanel" aria-labelledby="modeSysId" hidden>
+    <h1>Drivetrain SysId</h1>
+    <div class="sysidRow">
+      <button id="sysidStream" type="button">Start stream</button>
+      <button id="sysidProfile" aria-pressed="true">Profile</button>
+      <button id="sysidValidation" aria-pressed="false">Validate</button>
+      <button id="sysidImport">Import capture</button>
+      <input id="sysidFile" type="file" accept=".csv,.jsonl,.ndjson,.log,.txt,.wpilog,.gt1" hidden />
+      <button id="sysidLive">Capture PROS</button>
+      <button id="sysidNt4">Connect NT4</button>
+      <button id="sysidDownload" hidden>Save capture</button>
+    </div>
+    <details>
+      <summary>Robot terminal</summary>
+      <div id="sysidTerminalOutput" class="brainTerminalOutput"></div>
+    </details>
+    <form id="sysidMapping" hidden>
+      <h3>Map signals</h3>
+      <label id="sysidNt4HostRow">NT4 server
+        <input id="sysidNt4Host" type="text" maxlength="255" placeholder="roborio-1234-frc.local" />
+      </label>
+      <div id="sysidMappingFields" class="sysidMappingFields"></div>
+      <div class="sysidRow">
+        <button id="sysidMapApply" type="submit">Apply</button>
+        <button id="sysidMapCancel" type="button">Cancel</button>
+      </div>
+    </form>
+    <p id="sysidSource">Import a guanid CSV or capture live robot telemetry.</p>
+    <p id="sysidMessage" class="sysidError" role="status"></p>
+    <div class="sysidRow">
+      <label>Run <select id="sysidRun"></select></label>
+      <label>Channel <select id="sysidChannel"></select></label>
+      <label>Plot <select id="sysidPlotKind">
+        <option value="velocity">Velocity</option>
+        <option value="position">Position</option>
+        <option value="voltage">Applied voltage</option>
+        <option value="quasistatic">Quasistatic</option>
+        <option value="dynamic">Dynamic</option>
+        <option value="residual">Voltage residual</option>
+        <option value="simulation">Velocity simulation</option>
+      </select></label>
+      <label><input id="sysidExclude" type="checkbox" /> Exclude run</label>
+    </div>
+    <p id="sysidHealth"></p>
+    <div class="sysidPlot"><canvas id="sysidCanvas" role="img" aria-label="SysId signal plot"></canvas></div>
+    <div class="sysidRow">
+      <button id="sysidFit">Fit gains</button>
+      <button id="sysidSave">Save gains</button>
+      <button id="sysidCompare" hidden>Compare with saved gains</button>
+      <span id="sysidSaved"></span>
+    </div>
+    <div id="sysidMetrics" class="sysidMetrics"></div>
+    <details id="sysidReplay" hidden>
+      <summary>Sync with field replay</summary>
+      <div class="sysidRow">
+        <label>Replay offset (ms) <input id="sysidOffset" type="number" value="0" step="any" /></label>
+        <button id="sysidLink">Link replay</button>
+        <button id="sysidMappedPoses" hidden>Open mapped pose route</button>
+        <label>Robot time (s) <input id="sysidSeek" type="number" step="any" disabled /></label>
+        <button id="sysidGo" disabled>Seek</button>
+      </div>
+      <p id="sysidReplayStatus">Open the matching route in Viewing, then link its timeline.</p>
+    </details>
+  </section>
 
   <div id="helpModal" class="modal" hidden>
     <div class="modalBackdrop"></div>
@@ -163,7 +253,6 @@
           <legend>Area <span class="muted">(optional)</span></legend>
           <div class="feedbackTags" role="group" aria-label="Area">
             <button type="button" class="feedbackTag" data-feedback-area="viewing" aria-pressed="false">Viewing</button>
-            <button type="button" class="feedbackTag" data-feedback-area="planning" aria-pressed="false">Planning</button>
             <button type="button" class="feedbackTag" data-feedback-area="other" aria-pressed="false">Other</button>
           </div>
         </fieldset>
@@ -172,7 +261,7 @@
           <input id="feedbackRoute" type="checkbox">
           <span>Include the current route snapshot</span>
         </label>
-        <div class="feedbackRouteHint">This can include route data, logs, and planning code.</div>
+        <div class="feedbackRouteHint">This can include route data and logs.</div>
         <div id="feedbackValidation" class="feedbackValidation" role="alert"></div>
         <div id="feedbackDeliveryStatus" class="feedbackDeliveryStatus" role="status" hidden></div>
         <div class="feedbackActions">
@@ -208,7 +297,7 @@
       <div class="modalBody settingsBody">
 
         <!-- PROS Directory Section -->
-        <div class="settingsSection settingsViewing settingsGroup"
+        <div class="settingsSection settingsGroup"
           title="The path to your PROS Project. Used for Live Viewing and route exporting.">
           <div class="settingsGroupHeader">
             <div class="settingsGroupIcon">
@@ -235,10 +324,10 @@
           </div>
         </div>
 
-        <div class="divider settingsViewing" style="margin:10px 0;"></div>
+        <div class="divider" style="margin:10px 0;"></div>
 
         <!-- Robot Image Section -->
-        <div class="settingsSection settingsViewing settingsGroup"
+        <div class="settingsSection settingsGroup"
           title="Upload an image of your own robot to be used instead of the default box">
           <div class="settingsGroupHeader">
             <div class="settingsGroupIcon">
@@ -284,10 +373,10 @@
           </div>
         </div>
 
-        <div class="divider settingsViewing" style="margin:10px 0;"></div>
+        <div class="divider" style="margin:10px 0;"></div>
 
         <!-- Units & Robot Size Section -->
-        <div class="settingsSection settingsViewing settingsGroup" title="Affects visuals and scaling only">
+        <div class="settingsSection settingsGroup" title="Affects visuals and scaling only">
           <div class="settingsGroupHeader">
             <div class="settingsGroupIcon">
               <svg width="40" height="40" style="color: #70daed">
@@ -328,10 +417,10 @@
           </div>
         </div>
 
-        <div class="divider settingsViewing" style="margin:10px 0;"></div>
+        <div class="divider" style="margin:10px 0;"></div>
 
         <!-- Offsets Section -->
-        <div class="settingsSection settingsViewing settingsGroup" title="Adjust the position of the displayed path.">
+        <div class="settingsSection settingsGroup" title="Adjust the position of the displayed path.">
           <div class="settingsGroupHeader">
             <div class="settingsGroupIcon">
               <svg width="40" height="40" style="color: #70daed">
@@ -358,10 +447,10 @@
           </div>
         </div>
 
-        <div class="divider settingsViewing" style="margin:10px 0;"></div>
+        <div class="divider" style="margin:10px 0;"></div>
 
         <!-- Speed Normalization Section -->
-        <div class="settingsSection settingsViewing settingsGroup"
+        <div class="settingsSection settingsGroup"
           title="Manually enter the maximum and minimum speed that would be reported by your robot">
           <div class="settingsGroupHeader">
             <div class="settingsGroupIcon">🎨</div>
@@ -384,10 +473,10 @@
           </div>
         </div>
 
-        <div class="divider settingsViewing" style="margin:10px 0;"></div>
+        <div class="divider" style="margin:10px 0;"></div>
 
         <!-- Fields Section -->
-        <div class="settingsSection settingsViewing settingsGroup"
+        <div class="settingsSection settingsGroup"
           title="Choose whether previous seasons' field images appear in the field selector.">
           <div class="settingsGroupHeader">
             <div class="settingsGroupIcon">
@@ -436,10 +525,10 @@
           </div>
         </div>
 
-        <div class="divider settingsViewing" style="margin:10px 0;"></div>
+        <div class="divider" style="margin:10px 0;"></div>
 
         <!-- Privacy Section -->
-        <div class="settingsSection settingsViewing settingsGroup" title="Choose whether MotionView may send usage analytics.">
+        <div class="settingsSection settingsGroup" title="Choose whether MotionView may send usage analytics.">
           <div class="settingsGroupHeader">
             <div class="settingsGroupIcon">🔒</div>
             <div class="settingsGroupTitle">Privacy</div>
@@ -453,66 +542,6 @@
           </div>
         </div>
 
-        <!-- Planning Section -->
-        <div class="settingsSection settingsPlanning settingsGroup">
-          <div class="settingsGroupHeader">
-            <div class="settingsGroupIcon">
-              <svg width="18" height="18">
-                <use href="./assets/svg/planning/planOverlay.svg#icon-planOverlay" style="color: #ffffff"></use>
-              </svg>
-            </div>
-            <div class="settingsGroupTitle">Planning</div>
-          </div>
-          <div class="settingsGroupBody">
-            <div class="grid2">
-              <div>
-                <label id="settingsPlanSnapStepLabel" class="fieldLabel">Snap to grid</label>
-                <select id="settingsPlanSnapStep" class="settingsSelect">
-                  <option value="0">off</option>
-                  <option value="0.1">0.1</option>
-                  <option value="0.25">0.25</option>
-                  <option value="0.5" selected>0.5</option>
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                  <option value="5">5</option>
-                </select>
-              </div>
-              <div>
-                <label class="fieldLabel">Theta snap °</label>
-                <select id="settingsPlanThetaSnapStep" class="settingsSelect">
-                  <option value="0" selected>off</option>
-                  <option value="1">1</option>
-                  <option value="5">5</option>
-                  <option value="10">10</option>
-                  <option value="15">15</option>
-                  <option value="30">30</option>
-                  <option value="45">45</option>
-                  <option value="90">90</option>
-                </select>
-              </div>
-              <div>
-                <label id="settingsPlanMoveStepLabel" class="fieldLabel">Move selected waypoint</label>
-                <input id="settingsPlanMoveStep" type="number" step="0.1" value="0.5" class="settingsInput" />
-              </div>
-              <div>
-                <label class="fieldLabel">Limit waypoints to field
-                  bounds</label>
-                <input id="settingsPlanLimitBounds" type="checkbox" checked
-                  style="width:18px;height:18px;cursor:pointer" />
-              </div>
-              <div style="grid-column:1 / -1;">
-                <label class="fieldLabel" for="settingsPlanShowFieldNodes">Show nodes on field path</label>
-                <input id="settingsPlanShowFieldNodes" type="checkbox" checked
-                  aria-describedby="settingsPlanShowFieldNodesDescription"
-                  style="width:18px;height:18px;cursor:pointer" />
-                <p id="settingsPlanShowFieldNodesDescription" class="settingsDescription">Applies to Planning mode and the Viewing overlay.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="settingsSection settingsPlanning settingsGroup">
-          <div id="settingsPlanSimulation" class="settingsGroupBody planSimulationSettingsContent"></div>
-        </div>
       </div>
     </div>
   </div>
@@ -563,7 +592,7 @@
     <div id="floatResizer" aria-hidden="false"></div>
   </div>
 
-  <div class="app">
+  <div id="fieldWorkspace" class="app" role="tabpanel" aria-labelledby="modeViewing">
     <div class="row">
 
       <div id="left">
@@ -587,8 +616,8 @@
           </div>
         </div>
 
-        <div class="leftBody">
-          <div id="liveWin" class="monoText" role="log" aria-live="polite" aria-label="Live window"></div>
+        <div id="viewingTerminalOutput" class="leftBody">
+          <div id="liveWin" class="monoText" role="log" aria-label="Robot terminal" tabindex="0"></div>
         </div>
       </div>
 
@@ -596,41 +625,12 @@
 
       <div id="canvasWrap">
         <canvas id="c"></canvas>
-        <aside id="planningPathManager" class="planningPathManager planningOnly" aria-label="Planning paths">
-          <div class="planningPathManagerHeader">
-            <div id="planActivePathName" class="planningPathManagerActiveName">Path 1</div>
-            <button id="btnPlanPathManagerToggle" class="planningPathManagerToggle" type="button"
-              title="Open paths" aria-label="Open paths" aria-expanded="false">
-              <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"></path></svg>
-            </button>
-          </div>
-          <div id="planningPathManagerBody" class="planningPathManagerBody" aria-hidden="true" inert>
-            <div class="planningPathManagerContent">
-              <div class="planningPathManagerActions">
-                <button id="btnPlanCreatePath" class="planningPathManagerNew" type="button"
-                  title="New Path" aria-label="New Path">
-                  <svg aria-hidden="true" focusable="false"><use href="./assets/svg/planning/addPlanningObject.svg#icon-addPlanningObject"></use></svg>
-                </button>
-                <button id="btnPlanMirrorTopBottom" class="planningPathManagerAction" type="button"
-                  title="Flip Vertical" aria-label="Flip Vertical">
-                  <svg aria-hidden="true" focusable="false"><use href="./assets/svg/planning/flipVertical.svg#icon-flipVertical"></use></svg>
-                </button>
-                <button id="btnPlanMirrorLeftRight" class="planningPathManagerAction" type="button"
-                  title="Flip Horizontal" aria-label="Flip Horizontal">
-                  <svg aria-hidden="true" focusable="false"><use href="./assets/svg/planning/flipHorizontal.svg#icon-flipHorizontal"></use></svg>
-                </button>
-              </div>
-              <div id="planPathCount" class="planningPathManagerCount">1 Path</div>
-              <div id="planPathList" class="planningPathManagerList" aria-label="Saved Planning paths"></div>
-            </div>
-          </div>
-        </aside>
       </div>
 
       <div id="vSplit" class="splitterV" title="Drag to resize sidebar"></div>
 
       <div id="rightViewing" class="rightSidebar">
-        <div class="viewingSidebar viewingOnly">
+        <div class="viewingSidebar">
           <div class="viewingSidebarHeader">
             <div id="viewingSidebarTabs" class="viewingSidebarTabs" aria-label="Viewing sidebar controls">
               <div class="viewingSidebarSectionTabs" role="tablist" aria-label="Viewing sidebar sections">
@@ -653,9 +653,6 @@
               </div>
               <button id="btnToggleFloat" class="viewingSidebarTab viewingSidebarControl" type="button" title="Toggle Info Window" aria-label="Toggle Info Window" aria-pressed="false">
                 <svg width="18" height="18"><use href="./assets/svg/viewing/floatingWindow.svg#icon-floatingWin"></use></svg>
-              </button>
-              <button id="btnTogglePlanOverlay" class="viewingSidebarTab viewingSidebarControl" type="button" title="Toggle Planning Path overlay" aria-label="Toggle Planning Path overlay" aria-pressed="false">
-                <svg width="18" height="18"><use href="./assets/svg/planning/planOverlay.svg#icon-planOverlay"></use></svg>
               </button>
             </div>
           </div>
@@ -709,95 +706,10 @@
 
       </div>
 
-      <div id="rightPlanning" class="rightSidebar">
-        <div class="section planningOnly planWaypointSection">
-          <div class="statsPanel planWaypointPanel">
-            <div class="statsHeader">
-              <div class="statsTitle">Waypoints</div>
-              <button id="btnPlanEditTemplate" class="iconBtn secondaryBtn planEditTemplateBtn"
-                type="button">
-                <svg aria-hidden="true" focusable="false">
-                  <use href="./assets/svg/planning/editTemplate.svg#icon-editTemplate"></use>
-                </svg>
-                <span>Edit Template</span>
-              </button>
-            </div>
-            <div id="planList" class="planList"></div>
-            <div class="planSelectedPanel">
-              <div class="statsHeader">
-                <div class="statsTitle">Selected Waypoint</div>
-                <div id="planSelIndicators" class="waypointIndicatorStrip" aria-label="Waypoint indicators"></div>
-                <button id="btnPlanEditWaypoint" class="iconBtn secondaryBtn planEditWaypointBtn" type="button" title="Edit selected waypoint" aria-label="Edit selected waypoint" disabled>
-                  <svg aria-hidden="true" focusable="false"><use href="./assets/svg/planning/editWaypoint.svg#icon-editWaypoint"></use></svg>
-                </button>
-              </div>
-              <div class="planSelectedFields" style="margin-top:10px">
-                <div>
-                  <label id="planSelXLabel">X</label>
-                  <input id="planSelX" type="text" inputmode="decimal" />
-                </div>
-                <div>
-                  <label id="planSelYLabel">Y</label>
-                  <input id="planSelY" type="text" inputmode="decimal" />
-                </div>
-                <div>
-                  <label>θ°</label>
-                  <input id="planSelTheta" type="text" inputmode="decimal" />
-                </div>
-                <div>
-                  <label id="planSelSpeedLabel">Speed</label>
-                  <div class="planSelectedSpeedRange" role="group" aria-labelledby="planSelSpeedLabel">
-                    <input id="planSelMinSpeed" type="text" inputmode="numeric" aria-label="Minimum Speed" title="Minimum motion power (0–127). Use ${minSpeed} or @minspd in templates." />
-                    <span aria-hidden="true">-</span>
-                    <input id="planSelSpeed" type="text" inputmode="numeric" aria-label="Maximum Speed" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div id="planSplit" class="splitterH planningOnly" title="Drag to resize waypoint list"></div>
-        <div class="section planningOnly">
-          <div class="statsPanel planningExportPanel">
-            <div class="statsHeader">
-              <div class="statsTitle" style="margin-bottom: 4px;">Export</div>
-            </div>
-            <div class="planningExportActions">
-              <button id="btnPlanCopyCode" class="iconBtn secondaryBtn" type="button">
-                <svg aria-hidden="true" focusable="false">
-                  <use href="./assets/svg/planning/copyCode.svg#icon-copyCode"></use>
-                </svg>
-                <span>Copy Code</span>
-              </button>
-              <button id="btnPlanExportCode" class="iconBtn secondaryBtn" type="button">
-                <svg aria-hidden="true" focusable="false">
-                  <use href="./assets/svg/planning/exportCode.svg#icon-exportCode"></use>
-                </svg>
-                <span>Export Code</span>
-              </button>
-            </div>
-          </div>
-        </div>
-        <div class="section planningOnly">
-          <div class="statsPanel planEventsPanel">
-            <div class="statsHeader">
-              <div class="statsTitle" style="margin-bottom: 4px; align-items: center;">Custom Events <span class="planSharedScope">shared</span></div>
-              <button id="btnPlanAddObject" class="iconBtn secondaryBtn planEventAddBtn" type="button"
-                title="Add Object" aria-label="Add Object">
-                <svg width="20" height="20">
-                  <use href="./assets/svg/planning/addPlanningObject.svg#icon-addPlanningObject"></use>
-                </svg>
-              </button>
-            </div>
-            <div id="planObjectList" class="planObjectList"></div>
-          </div>
-        </div>
-      </div>
     </div>
 
     <div id="hSplit" class="splitterH" title="Drag to resize timeline"></div>
 
-    <div id="planningTimelineSplit" class="splitterH planningOnly" title="Drag to resize planning timeline"></div>
 
     <!-- Bottom timeline bar -->
     <div id="timelineBar">
@@ -816,31 +728,7 @@
         <span class="pill cursorPill" id="cursorPill">Cursor: —</span>
       </div>
       <canvas id="timelineCanvas"></canvas>
-      <div id="planningTimelineBar">
-        <div id="planningTimelineTop">
-          <div id="planningTimelineLeft">
-            <span class="pill" id="planTimePill">Plan: —</span>
-            <span class="pill" id="planPointPill">Points: 0</span>
-            <span class="pill" id="planLatestPill">—</span>
-          </div>
-          <span class="pill cursorPill" id="planCursorPill">Cursor: —</span>
-        </div>
-        <div id="planningTimelineViewport">
-          <div id="planningTimelineContent">
-            <div id="planningEventTimeline" aria-label="Planning event timeline">
-              <div id="planningEventTimelineInner">
-                <div id="planningEventTimelineHint">Add at least 2 waypoints to place events.</div>
-                <div id="planningTimelineDropLine" hidden></div>
-                <div id="planningTimelineWaypointLayer"></div>
-                <div id="planningTimelineNodeLayer"></div>
-              </div>
-            </div>
-            <canvas id="planningTimelineCanvas"></canvas>
-          </div>
-        </div>
-      </div>
     </div>
-    <div id="planNodeTooltip" class="planNodeTooltip" hidden role="tooltip" aria-hidden="true"></div>
     <div id="exportModal" class="modal" hidden>
       <div class="modalBackdrop"></div>
       <div class="modalCard settingsCard" role="dialog" aria-modal="true" aria-labelledby="exportTitle" tabindex="-1">
@@ -892,14 +780,6 @@
                   <option value="desktop">Desktop</option>
                   <option value="documents">Documents</option>
                   <option value="custom">Custom Folder</option>
-                </select>
-              </div>
-              <div>
-                <label class="fieldLabel" for="exportLocation">Choose Exports</label>
-                <select id="exportTypes" class="settingsSelect">
-                  <option value="viewing" selected>Viewing Mode</option>
-                  <option value="planning">Planning Mode</option>
-                  <option value="both">Viewing & Planning Mode</option>
                 </select>
               </div>
               <div id="exportCustomPathWrap" hidden>
@@ -961,162 +841,25 @@
       </div>
     </div>
 
-    <div id="planCodeExportModal" class="modal" hidden>
+    <div id="confirmDialogModal" class="modal" hidden>
       <div class="modalBackdrop"></div>
-      <div class="modalCard settingsCard planCodeExportCard" role="dialog" aria-modal="true"
-        aria-labelledby="planCodeExportTitle" tabindex="-1">
+      <div class="modalCard confirmDialogModalCard" role="dialog" aria-modal="true"
+        aria-labelledby="confirmDialogTitle" tabindex="-1">
         <div class="modalHeader">
           <div class="modalHeaderContent">
-            <div id="planCodeExportTitle" class="settingsMainTitle">Export Code</div>
-            <div class="settingsSubtitle">Write the generated planned path to a source file.</div>
+            <div id="confirmDialogTitle" class="settingsMainTitle">Confirm</div>
           </div>
-          <button id="btnPlanCodeExportClose" class="iconBtn closeBtn" title="Close">✕</button>
+          <button id="btnConfirmDialogClose" class="iconBtn closeBtn" title="Close">✕</button>
         </div>
         <div class="modalBody settingsBody">
-          <div class="settingsSection settingsGroup">
-            <div class="settingsGroupHeader">
-              <div class="settingsGroupIcon">&lt;/&gt;</div>
-              <div class="settingsGroupTitle" style="font-size: 20px;">Code File</div>
-            </div>
-            <div class="settingsGroupBody">
-              <div>
-                <label class="fieldLabel" for="planCodeExportHeader">Header</label>
-                <label class="settingsDescription" for="planCodeExportHeader">Inserted before the generated path.</label>
-                <textarea id="planCodeExportHeader" class="settingsInput planCodeExportAffix" spellcheck="false"
-                  placeholder="void autonomous() {"></textarea>
-              </div>
-              <div>
-                <label class="fieldLabel" for="planCodeExportFooter">Footer</label>
-                <label class="settingsDescription" for="planCodeExportFooter">Inserted after the generated path.</label>
-                <textarea id="planCodeExportFooter" class="settingsInput planCodeExportAffix" spellcheck="false"
-                  placeholder="}"></textarea>
-              </div>
-              <div>
-                <label class="fieldLabel" for="planCodeExportTarget">Target</label>
-                <select id="planCodeExportTarget" class="settingsSelect">
-                  <option value="downloads">Downloads</option>
-                  <option value="desktop">Desktop</option>
-                  <option value="documents">Documents</option>
-                  <option value="project">PROS Project</option>
-                  <option value="custom">Custom</option>
-                </select>
-              </div>
-              <div>
-                <label class="fieldLabel" for="planCodeExportPath">Export Path</label>
-                <label class="settingsDescription" for="planCodeExportPath">Full path including the filename and extension. Careful! Exporting overwrites any existing file.</label>
-                <input id="planCodeExportPath" type="text" class="settingsInput"
-                  placeholder="/path/to/autonomous.cpp" autocomplete="off" spellcheck="false" />
-              </div>
-              <div id="planCodeExportValidation" class="muted exportValidationMessage" aria-live="polite"></div>
-              <div id="planCodeExportSuccess" class="exportSuccessMessage" aria-live="polite" hidden></div>
-            </div>
-          </div>
-          <div class="exportFooter">
-            <button id="btnPlanCodeExportCancel" class="iconBtn secondaryBtn" type="button">Cancel</button>
-            <button id="btnPlanCodeExportConfirm" class="iconBtn secondaryBtn" type="button">Export</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div id="planTemplateModal" class="modal" hidden>
-      <div class="modalBackdrop"></div>
-      <div class="modalCard settingsCard templateModalCard" role="dialog" aria-modal="true"
-        aria-labelledby="planTemplateTitle" tabindex="-1">
-        <div class="modalHeader">
-          <div class="modalHeaderContent">
-            <div id="planTemplateTitle" class="settingsMainTitle">Edit Template</div>
-            <div id="planTemplateSubtitle" class="settingsSubtitle">One template block is generated for each route segment.
-            </div>
-          </div>
-          <select id="planTemplateLibrary" class="settingsSelect planTemplateLibrary" aria-label="Template library" hidden>
-            <option value="lemlib">LemLib</option>
-            <option value="ez-template">EZ-Template</option>
-            <option value="jar-template">JAR-Template</option>
-            <option value="vexcode-cpp">VEXcode C++</option>
-            <option value="vexcode-python">VEXcode Python</option>
-            <option value="custom">Custom</option>
-          </select>
-          <button id="btnPlanTemplateClose" class="iconBtn closeBtn" title="Close">✕</button>
-        </div>
-        <div class="modalBody settingsBody">
-          <div id="planMotionPreview" class="planMotionPreview" hidden></div>
-          <div id="planTemplateIndicatorPicker" class="waypointIndicatorPicker" role="group" aria-label="Waypoint indicators" hidden>
-            <button class="waypointIndicatorButton" type="button" data-waypoint-indicator="rotate" aria-label="Circular arrow" aria-pressed="false">
-              <svg aria-hidden="true" focusable="false"><use href="./assets/svg/planning/waypointRotate.svg#icon-waypointRotate"></use></svg>
-            </button>
-            <button class="waypointIndicatorButton" type="button" data-waypoint-indicator="swing" aria-label="Pivoting arrow" aria-pressed="false">
-              <svg aria-hidden="true" focusable="false"><use href="./assets/svg/planning/waypointSwing.svg#icon-waypointSwing"></use></svg>
-            </button>
-            <button class="waypointIndicatorButton" type="button" data-waypoint-indicator="forward" aria-label="Straight arrow" aria-pressed="false">
-              <svg aria-hidden="true" focusable="false"><use href="./assets/svg/planning/waypointForward.svg#icon-waypointForward"></use></svg>
-            </button>
-            <button class="waypointIndicatorButton" type="button" data-waypoint-indicator="boomerang" aria-label="Curved arrow" aria-pressed="false">
-              <svg aria-hidden="true" focusable="false"><use href="./assets/svg/planning/waypointBoomerang.svg#icon-waypointBoomerang"></use></svg>
-            </button>
-          </div>
-          <div class="settingsSection settingsGroup">
-            <div class="settingsGroupHeader">
-              <div class="settingsGroupIcon">&lt;/&gt;</div>
-              <div id="planTemplateGroupTitle" class="settingsGroupTitle" style="font-size: 20px;">Planning Export
-                Template</div>
-
-            </div>
-            <div class="settingsGroupBody">
-              <div id="planTemplateNameField" hidden>
-                <label class="fieldLabel" for="planTemplateNameInput">Name</label>
-                <label id="planTemplateNameDescription" class="settingsDescription" for="planTemplateNameInput">Method
-                  name</label>
-                <input id="planTemplateNameInput" type="text" class="settingsInput" maxlength="25" autocomplete="off"
-                  spellcheck="false" />
-              </div>
-              <div id="planSwingDriveSideFields" class="planSwingDriveSideFields" hidden>
-                <div>
-                  <label class="fieldLabel" for="planSwingLeftDriveSide">Locked Left</label>
-                  <input id="planSwingLeftDriveSide" type="text" class="settingsInput" spellcheck="false" autocomplete="off" />
-                </div>
-                <div>
-                  <label class="fieldLabel" for="planSwingRightDriveSide">Locked Right</label>
-                  <input id="planSwingRightDriveSide" type="text" class="settingsInput" spellcheck="false" autocomplete="off" />
-                </div>
-              </div>
-              <label id="planTemplateDescription" class="settingsDescription" for="planTemplateInput">Available
-                placeholders: <code>${x}</code>,
-                <code>${y}</code>,
-                <code>${theta}</code>, <code>${distance}</code>, <code>${iteration}</code>,
-                <code>${speed}</code>, and <code>${forwards}</code>.</label>
-              <textarea id="planTemplateInput" class="settingsInput planTemplateInput" spellcheck="false"
-                placeholder="moveToPoint(${x}, ${y}, ${theta});"></textarea>
-              <div id="planTemplateValidation" class="templateModalValidation" hidden></div>
-            </div>
-          </div>
-          <div class="exportFooter">
-            <button id="btnPlanTemplateCancel" class="iconBtn secondaryBtn" type="button">Cancel</button>
-            <button id="btnPlanTemplateConfirm" class="iconBtn secondaryBtn" type="button">Confirm</button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div id="planObjectDeleteModal" class="modal" hidden>
-      <div class="modalBackdrop"></div>
-      <div class="modalCard planConfirmModalCard" role="dialog" aria-modal="true"
-        aria-labelledby="planObjectDeleteTitle" tabindex="-1">
-        <div class="modalHeader">
-          <div class="modalHeaderContent">
-            <div id="planObjectDeleteTitle" class="settingsMainTitle">Remove Object</div>
-          </div>
-          <button id="btnPlanObjectDeleteClose" class="iconBtn closeBtn" title="Close">✕</button>
-        </div>
-        <div class="modalBody settingsBody">
-          <div id="planObjectDeleteMessage" class="planConfirmMessage">Are you sure you want to remove this object?
-          </div>
-          <label id="planConfirmDontShowAgainRow" class="planConfirmDontShowAgain" hidden>
-            <input id="planConfirmDontShowAgain" type="checkbox" />
+          <div id="confirmDialogMessage" class="confirmDialogMessage"></div>
+          <label id="confirmDialogDontShowAgainRow" class="confirmDialogDontShowAgain" hidden>
+            <input id="confirmDialogDontShowAgain" type="checkbox" />
             Don't show this message again
           </label>
           <div class="exportFooter">
-            <button id="btnPlanObjectDeleteCancel" class="iconBtn secondaryBtn" type="button">Cancel</button>
-            <button id="btnPlanObjectDeleteConfirm" class="iconBtn secondaryBtn" type="button">Confirm</button>
+            <button id="btnConfirmDialogCancel" class="iconBtn secondaryBtn" type="button">Cancel</button>
+            <button id="btnConfirmDialogConfirm" class="iconBtn secondaryBtn" type="button">Confirm</button>
           </div>
         </div>
       </div>

@@ -472,6 +472,5 @@ export class ViewingFieldView implements ViewingFieldLayer {
   private setCursorReadout(text: string | null): void {
     const value = text ?? "Cursor: —";
     this.dom.cursor.textContent = value;
-    this.dom.planCursor.textContent = value;
   }
 }

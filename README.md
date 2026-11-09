@@ -33,7 +33,6 @@ MotionView's creation was inspired by other visualizers such as [Grafana](https:
 - **Live Streaming:** See your robot's exact path, heading, and speed drawn on a virtual 2D field.
 - **Compare and Contrast:** Overlay multiple datasets (such as actual and target velocities) on the graph at once.
 - **Customizable UI:** Pin critical variables as custom floating UI widgets, and drag floating widgets around the screen.
-- **Path Planning:** Draft, edit, and simulate routes interactively, then overlay your planned path onto a real recorded run.
 - **Smart Telemetry:** Create periodic set-and-forget watches and stream general-purpose logs over a high-speed binary protocol without eating up your V5 CPU.
 - **Events are synced:** Click on an event to see exactly where and what the robot was doing at that time.
 
@@ -47,6 +46,8 @@ Open the help menu (the `?` in the top left corner) and select "Send Feedback" i
 Anything helps! We're always looking for ways to improve MotionView.
 
 ## Docs
+
+See the [Drivetrain SysId guide](SYSID.md) for capture, fitting, and model validation.
 Documentation can be found [here](https://lewispinstein-hue.github.io/MotionView/).
 
 ## Discord

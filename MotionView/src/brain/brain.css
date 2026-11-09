@@ -1,0 +1,142 @@
+.brainPanel {
+  display: grid;
+  grid-template-columns: clamp(150px, 22vw, 250px) minmax(0, 1fr);
+  height: calc(100dvh - var(--topbarH));
+  min-height: 0;
+  background: #0d131c;
+  color: #ecf2fa;
+}
+
+.brainPanel [hidden],
+.brainPanel[hidden] {
+  display: none;
+}
+
+.brainSidebar,
+.brainMain {
+  min-height: 0;
+  overflow: auto;
+  padding: clamp(14px, 2.5vw, 28px);
+}
+
+.brainSidebar {
+  border-right: 1px solid #2b3747;
+  background: #101821;
+}
+
+.brainPanel :is(h1, h2, p),
+.brainGraphWindow :is(h1, h2, p) {
+  margin: 0;
+}
+
+.brainPanel h1,
+.brainGraphWindow h1 { font-size: clamp(20px, 3vw, 28px); }
+.brainPanel h2,
+.brainGraphWindow h2 { font-size: 14px; }
+.brainPanel p,
+.brainPanel small,
+.brainGraphWindow p { color: #aebdce; }
+.brainPanel p { line-height: 1.45; }
+
+.brainSidebar ul {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+}
+
+.brainSidebar p { margin-top: 12px; }
+
+.brainPanel button {
+  border: 1px solid #354356;
+  border-radius: 8px;
+  background: #172334;
+  color: #ecf2fa;
+  padding: 8px 12px;
+  min-height: 38px;
+  cursor: pointer;
+}
+
+.brainPanel button:focus-visible {
+  outline: 2px solid #8bb8ff;
+  outline-offset: 2px;
+}
+
+.brainPanel button:disabled {
+  cursor: default;
+  opacity: .5;
+}
+
+.brainSidebar button {
+  width: 100%;
+  display: grid;
+  gap: 4px;
+  text-align: left;
+  background: transparent;
+  border-color: transparent;
+}
+
+.brainPanel button:hover:not(:disabled) {
+  background: #1c3049;
+  border-color: #476388;
+}
+
+.brainHeader,
+.brainGraphs header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.brainHeader { margin-bottom: 16px; }
+.brainHeader p { margin-top: 4px; }
+
+.brainTerminal {
+  margin-bottom: 16px;
+}
+
+.brainTerminalOutput {
+  height: clamp(120px, 24dvh, 230px);
+  margin-top: 8px;
+}
+
+.brainTerminalOutput #liveWin:empty::before {
+  content: "No terminal output yet.";
+  color: var(--muted);
+}
+
+.brainGraphs {
+  display: grid;
+  gap: 12px;
+}
+
+.brainGraphWindow {
+  margin: 0;
+  min-height: 100vh;
+  background: #0d131c;
+  color: #ecf2fa;
+  font: 14px system-ui, sans-serif;
+  color-scheme: dark;
+}
+
+.brainGraphs section {
+  min-width: 0;
+  border: 1px solid #2b3747;
+  background: #121c28;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.brainPlot {
+  position: relative;
+  height: clamp(140px, 25vh, 320px);
+  margin-top: 8px;
+}
+
+@media (min-width: 1050px) {
+  .brainGraphs { grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); }
+  .brainPlot { height: clamp(200px, 48vh, 580px); }
+}

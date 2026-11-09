@@ -36,8 +36,8 @@ export async function runPersistenceRegressions(server) {
   const originalAddListener = globalThis.addEventListener;
   const originalConsoleError = console.error;
   try {
-    // A recognized collision, successful confirmation, cancellation, and the
-    // two independent stored choices all go through the real export service.
+    // Exercise collision, confirmation, cancellation, and the remembered
+    // overwrite choice through the real export service.
     for (const scenario of [
       { name: "new file", exists: false, expected: [false] },
       {
@@ -61,14 +61,7 @@ export async function runPersistenceRegressions(server) {
         expected: [false, true],
       },
       {
-        name: "planning skip does not skip JSON",
-        exists: true,
-        planningSkip: true,
-        confirmed: true,
-        expected: [false, true],
-      },
-      {
-        name: "JSON skip does not change planning",
+        name: "JSON skip exports without prompting",
         exists: true,
         jsonSkip: true,
         expected: [true],
@@ -76,7 +69,6 @@ export async function runPersistenceRegressions(server) {
     ]) {
       const app = new MotionViewApp();
       app.settings.update({
-        skipPlanningCodeExportOverwriteConfirmation: !!scenario.planningSkip,
         skipMotionViewJsonExportOverwriteConfirmation: !!scenario.jsonSkip,
       });
       app.viewing.load({ poses: [{ t: 1, x: 4, y: 5 }] });
@@ -86,7 +78,6 @@ export async function runPersistenceRegressions(server) {
           "filename",
           "filenameHint",
           "location",
-          "type",
           "customWrap",
           "customPath",
           "customHint",
@@ -98,7 +89,6 @@ export async function runPersistenceRegressions(server) {
       Object.assign(dom.pathName, { value: "Capture" });
       dom.filename.value = "capture";
       dom.location.value = "downloads";
-      dom.type.value = "viewing";
       const attempts = [];
       const confirmations = [];
       const savedSettings = [];
@@ -145,10 +135,6 @@ export async function runPersistenceRegressions(server) {
         scenario.exists && !scenario.jsonSkip ? 1 : 0,
       );
       assert.equal(
-        app.settings.current.skipPlanningCodeExportOverwriteConfirmation,
-        !!scenario.planningSkip,
-      );
-      assert.equal(
         app.settings.current.skipMotionViewJsonExportOverwriteConfirmation,
         !!scenario.jsonSkip || !!(scenario.confirmed && scenario.dontShowAgain),
       );
@@ -177,7 +163,6 @@ export async function runPersistenceRegressions(server) {
           "filename",
           "filenameHint",
           "location",
-          "type",
           "customWrap",
           "customPath",
           "customHint",
@@ -189,7 +174,6 @@ export async function runPersistenceRegressions(server) {
       dom.pathName.value = "Capture";
       dom.filename.value = "capture";
       dom.location.value = "downloads";
-      dom.type.value = "viewing";
       let resolveConfirmation;
       let attempts = 0;
       const service = {
@@ -229,6 +213,40 @@ export async function runPersistenceRegressions(server) {
         "Failed to export file: Disk is full",
       );
       console.error = originalConsoleError;
+    }
+
+    {
+      const app = new MotionViewApp();
+      const legacyPlans = {
+        "planned-active-path-id": "first",
+        "planned-paths": [{ id: "first", "planned-path": [{ x: 3, y: 7 }] }],
+      };
+      const writes = [];
+      globalThis.window = {
+        __TAURI_INTERNALS__: {
+          invoke: async (command, args) => {
+            if (command === "read_saved_paths") {
+              return JSON.stringify({
+                ...legacyPlans,
+                "robot-path": [{ x: 1, y: 2 }],
+              });
+            }
+            assert.equal(command, "write_saved_paths");
+            writes.push(JSON.parse(args.contents));
+          },
+        },
+      };
+      const serializer = new MotionViewDocumentSerializer(app);
+      const persistence = new SessionPersistence(app, serializer);
+      assert.equal(await persistence.restore(), true);
+      assert.equal(app.viewing.data.poses[0].x, 1);
+      app.viewing.load({ poses: [{ x: 9, y: 2 }] });
+      await persistence.saveNow();
+      assert.equal(writes[0]["robot-path"][0].x, 9);
+      for (const [key, value] of Object.entries(legacyPlans)) {
+        assert.deepEqual(writes[0][key], value);
+        assert.equal(Object.hasOwn(serializer.exportPayload("Run", {}), key), false);
+      }
     }
 
     // Writes must finish in order, including a latest-state save queued while
@@ -358,7 +376,6 @@ export async function runPersistenceRegressions(server) {
         start: async () => {},
         markReady: async () => {},
         live: { initialize: async () => {} },
-        planning: { route: [] },
         core: {
           mode: { setMode() {} },
           tauri: {
@@ -372,7 +389,6 @@ export async function runPersistenceRegressions(server) {
         app,
         { updateFieldLayout() {}, loadRobotImage() {} },
         { render() {} },
-        binding,
         binding,
         binding,
         binding,

@@ -15,7 +15,6 @@ import { FieldSizeScaler } from "./FieldSizeScaler";
 import type {
   FieldBounds,
   FieldPose,
-  PlanningFieldLayer,
   RobotDimensions,
   RobotImageTransform,
   ScreenPoint,
@@ -51,7 +50,6 @@ export class FieldRenderer {
   #inputBound = false;
 
   declare registerViewingLayer: (layer: ViewingFieldLayer) => void;
-  declare registerPlanningLayer: (layer: PlanningFieldLayer) => void;
   declare draw: () => void;
   declare resizeCanvas: () => void;
   declare updateFieldLayout: (preserveBounds?: boolean) => void;
@@ -152,7 +150,6 @@ export class FieldRenderer {
     let panStart = { x: 0, y: 0, panX: 0, panY: 0 };
     let suppressNextClick = false;
     let viewingLayer: ViewingFieldLayer | null = null;
-    let planningLayer: PlanningFieldLayer | null = null;
     const sizes = (this.sizes = new FieldSizeScaler({
       getScale: () => scale,
       getViewZoom: () => viewZoom,
@@ -396,15 +393,9 @@ export class FieldRenderer {
       if (getMode() === "viewing") {
         viewingLayer?.drawPath();
         viewingLayer?.drawOverlay();
-        if (planningLayer?.overlayVisible) planningLayer.drawOverlay(true);
         const pose = viewingLayer?.currentPose() ?? null;
         if (pose) viewingLayer?.drawWaypointOffset(pose);
         if (pose) drawRobot(pose, 1.0);
-      } else {
-        planningLayer?.drawOverlay();
-        const pose = planningLayer?.currentPose() ?? null;
-        if (pose) drawRobot(pose, 1.0);
-        planningLayer?.drawSelection();
       }
     }
 
@@ -453,9 +444,6 @@ export class FieldRenderer {
       sizes,
       registerViewingLayer(layer: ViewingFieldLayer) {
         viewingLayer = layer;
-      },
-      registerPlanningLayer(layer: PlanningFieldLayer) {
-        planningLayer = layer;
       },
       draw,
       resizeCanvas() {
@@ -963,9 +951,6 @@ export class FieldRenderer {
     this.#inputBound = true;
     this.canvas.addEventListener("wheel", (event) => this.handleWheel(event), {
       passive: false,
-    });
-    this.canvas.addEventListener("contextmenu", (event) => {
-      if (getMode() === "planning") event.preventDefault();
     });
   }
 }

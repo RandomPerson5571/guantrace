@@ -21,7 +21,6 @@ export class SessionPersistence {
   bind(): void {
     if (this.#bound) return;
     this.#bound = true;
-    this.app.planning.events.documentChanged.subscribe(() => this.schedule());
     this.app.viewing.events.dataChanged.subscribe(() => this.schedule());
     this.app.live.events.streamChanged.subscribe(() => {
       if (!this.app.live.stream.streaming) this.schedule();
@@ -32,9 +31,14 @@ export class SessionPersistence {
       const serialized = await this.#repository.read();
       if (!serialized) { this.schedule(); return false; }
       const document: unknown = JSON.parse(serialized);
-      this.app.planning.load(document);
+      // Keep legacy plan data in the autosave so older versions can still read it.
+      if (document && typeof document === "object") {
+        this.app.legacyPlanningData = Object.fromEntries(
+          Object.entries(document).filter(([key]) => key.startsWith("planned-")),
+        );
+      }
       this.app.viewing.load(document);
-      return this.app.planning.hasData || this.app.viewing.data.hasData;
+      return this.app.viewing.data.hasData;
     } catch (error) {
       console.warn("Failed to load saved paths:", error);
       return false;

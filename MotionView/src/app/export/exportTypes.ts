@@ -1,4 +1,3 @@
-import type { MotionViewExportType } from "../persistence";
 export type ExportLocation =
   | "downloads"
   | "desktop"
@@ -12,7 +11,6 @@ export interface ExportDestination {
 }
 
 export interface ExportRequest {
-  readonly exportType: MotionViewExportType;
   readonly filenameBase: string;
   readonly pathName: string;
   readonly destination: ExportDestination;

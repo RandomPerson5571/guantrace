@@ -1,6 +1,6 @@
-export type ShortcutScope = "app" | "viewing" | "planning" | "live";
+export type ShortcutScope = "app" | "viewing" | "live";
 export { hasOpenModal } from "../dialogs/modalActivity";
-export type ShortcutHelpGroup = "Global" | "Viewing" | "Planning";
+export type ShortcutHelpGroup = "Global" | "Viewing";
 
 export interface ShortcutChord {
   readonly key?: string;

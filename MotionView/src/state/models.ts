@@ -83,60 +83,10 @@ export interface Waypoint {
   latestActiveEvent: WaypointEvent;
 }
 
-export interface PlanWaypoint {
-  x: number;
-  y: number;
-  theta?: number;
-  speed?: number;
-  /** Minimum departing motion power; absent values default to zero. */
-  minSpeed?: number;
-  /** Explicit departing travel direction; absent legacy values use heading inference. */
-  forwards?: boolean;
-  /** Departing Boomerang tangent length as a fraction of the segment chord. */
-  lead?: number;
-  overrideCode?: string;
-  indicatorIcons?: PlanWaypointIndicatorIcon[];
-  /** One or two distinct departing motions in execution order. */
-  motions?: PlanWaypointMotion[];
-}
 
-export interface PlanWaypointMotion {
-  /** Locked Swing side, used by simulation and the lockedDriveSide placeholder. */
-  lockedDriveSide?: "left" | "right";
-  id: string;
-  type: PlanWaypointIndicatorIcon;
-  overrideCode?: string;
-}
 
-export type PlanMotionTemplates = Record<PlanWaypointIndicatorIcon, string>;
 
-export type PlanWaypointIndicatorIcon =
-  | "rotate"
-  | "swing"
-  | "forward"
-  | "boomerang";
 
-export interface PlanObject {
-  id: string;
-  name: string;
-  color?: string;
-  methods?: PlanMethod[];
-}
-
-export interface PlanMethod {
-  id: string;
-  name: string;
-  code?: string;
-}
-
-export interface PlanNode {
-  id: string;
-  objectId: string;
-  methodId: string;
-  beforeWaypoint: number;
-  index: number;
-  code?: string;
-}
 
 export interface RouteData {
   poses: unknown;

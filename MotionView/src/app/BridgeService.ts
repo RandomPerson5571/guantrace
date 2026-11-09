@@ -34,10 +34,18 @@ export class BridgeService {
   }
 
   get websocketUrl(): string | null {
+    return this.socketUrl("/ws");
+  }
+
+  get sysIdNt4Url(): string | null {
+    return this.socketUrl("/ws/sysid-nt4");
+  }
+
+  private socketUrl(path: string): string | null {
     const origin = this.websocketOrigin;
     const token = this.refreshInjectedToken();
     return origin && token
-      ? `${origin}/ws?token=${encodeURIComponent(token)}`
+      ? `${origin}${path}?token=${encodeURIComponent(token)}`
       : null;
   }
 

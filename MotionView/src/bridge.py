@@ -2,6 +2,9 @@ import argparse
 import asyncio
 import hashlib
 import json
+import math
+import struct
+from urllib.parse import urlsplit
 import os
 import secrets
 import signal
@@ -18,7 +21,10 @@ from datetime import datetime
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field
-from fastapi.websockets import WebSocket
+from fastapi.websockets import WebSocket, WebSocketDisconnect
+import msgpack
+from websockets.asyncio.client import connect as connect_websocket
+from websockets.exceptions import WebSocketException
 import uvicorn
 
 # PROS_PROJECT_DIR can be updated via API
@@ -511,6 +517,152 @@ async def ws_endpoint(websocket: WebSocket):
     finally:
         async with _clients_lock:
             clients.discard(websocket)
+
+NT4_SUBPROTOCOLS = ("v4.1.networktables.first.wpi.edu", "networktables.first.wpi.edu")
+
+
+def nt4_request(config):
+    if not isinstance(config, dict):
+        raise ValueError("Expected an NT4 connection request.")
+    host = config.get("host")
+    topics = config.get("topics")
+    if not isinstance(host, str) or len(host) > 255 or not re.fullmatch(r"[A-Za-z0-9._:\[\]-]+", host):
+        raise ValueError("Enter an NT4 host name or IP address, optionally followed by a port.")
+    address = urlsplit("ws://" + host)
+    if not address.hostname or address.port == 0:
+        raise ValueError("Invalid NT4 server address.")
+    if (not isinstance(topics, list) or not 1 <= len(topics) <= 16
+            or any(not isinstance(topic, str) or not topic.startswith("/") or len(topic) > 256
+                   for topic in topics)):
+        raise ValueError("Enter 1–16 exact NT4 topic names starting with /.")
+    authority = address.netloc if address.port is not None else address.netloc + ":5810"
+    return "ws://" + authority + "/nt/guantrace", set(topics)
+
+
+def nt4_number(value):
+    return type(value) in (int, float) and math.isfinite(value)
+
+
+def nt4_values(frame, announced):
+    unpacker = msgpack.Unpacker(raw=False, max_buffer_size=2**20)
+    unpacker.feed(frame)
+    for message in unpacker:
+        if not isinstance(message, list) or len(message) != 4:
+            continue
+        topic_id, timestamp, _, value = message
+        if type(topic_id) is not int or type(timestamp) is not int or not 0 < timestamp < 2**53:
+            continue
+        if topic_id not in announced:
+            continue
+        name, kind = announced[topic_id]
+        if kind == "struct:Pose2d" and isinstance(value, bytes) and len(value) == 24:
+            value = struct.unpack("<ddd", value)
+        if (nt4_number(value) or isinstance(value, str) and len(value) <= 256
+                or isinstance(value, (list, tuple)) and len(value) == 3 and all(map(nt4_number, value))):
+            yield {"name": name, "us": timestamp, "value": value}
+
+
+async def relay_nt4(websocket, url, topics):
+    # NT4.0 servers may mishandle client WebSocket pings. Both versions have
+    # timestamp messages, and NT4.1 supports regular WebSocket ping/pong.
+    async with connect_websocket(url, subprotocols=NT4_SUBPROTOCOLS, proxy=None, compression=None,
+                                 open_timeout=5, close_timeout=1, ping_interval=None, max_size=2**20) as robot:
+        if robot.subprotocol not in NT4_SUBPROTOCOLS:
+            raise ValueError("The server did not negotiate NT4.")
+        announced = {-1: ("", "int")}
+        await robot.send(msgpack.packb([-1, 0, 2, time.monotonic_ns() // 1000]))
+
+        async def capture_start():
+            while True:
+                frame = await robot.recv()
+                if isinstance(frame, bytes):
+                    for value in nt4_values(frame, announced):
+                        if not value["name"]:
+                            return value["us"]
+
+        started_at = await asyncio.wait_for(capture_start(), 2)
+        await robot.send(json.dumps([{"method": "subscribe", "params": {
+            "topics": sorted(topics), "subuid": 1, "options": {"all": True, "periodic": 0.02},
+        }}]))
+        await websocket.send_json({"kind": "connected"})
+        last_ping = last_reply = time.monotonic()
+        while True:
+            if time.monotonic() - last_reply > 9:
+                raise ValueError("The NT4 server stopped responding.")
+            if time.monotonic() - last_ping >= 3:
+                if robot.subprotocol == NT4_SUBPROTOCOLS[0]:
+                    pong = await robot.ping()
+                    await asyncio.wait_for(pong, 3)
+                await robot.send(msgpack.packb([-1, 0, 2, time.monotonic_ns() // 1000]))
+                last_ping = time.monotonic()
+            try:
+                frame = await asyncio.wait_for(robot.recv(), max(0.01, 3 - (time.monotonic() - last_ping)))
+            except asyncio.TimeoutError:
+                continue
+            if isinstance(frame, str):
+                messages = json.loads(frame)
+                if not isinstance(messages, list):
+                    continue
+                for message in messages:
+                    if not isinstance(message, dict) or not isinstance(message.get("params"), dict):
+                        continue
+                    params = message["params"]
+                    topic_id = params.get("id")
+                    if type(topic_id) is not int or topic_id < 0:
+                        continue
+                    if message.get("method") == "unannounce":
+                        announced.pop(topic_id, None)
+                    elif message.get("method") == "announce" and isinstance(params.get("name"), str) and params["name"] in topics:
+                        announced[topic_id] = (params["name"], params.get("type"))
+                        await websocket.send_json({"kind": "topic", "name": params["name"], "type": params.get("type")})
+                continue
+            values = list(nt4_values(frame, announced))
+            if any(value["name"] == "" for value in values):
+                last_reply = time.monotonic()
+            # NT retains initial values. Preserve a latched test state, but avoid
+            # mixing old cached measurements into the start of a new capture.
+            values = [value for value in values if value["name"] and
+                      (value["us"] >= started_at or isinstance(value["value"], str))]
+            for start in range(0, len(values), 256):
+                await websocket.send_json({"kind": "samples", "values": values[start:start + 256]})
+
+
+@app.websocket("/ws/sysid-nt4")
+async def nt4_endpoint(websocket: WebSocket):
+    if websocket.headers.get("origin") not in ALLOWED_ORIGINS or not _has_valid_token(websocket.query_params.get("token", "")):
+        await websocket.close(code=1008)
+        return
+    await websocket.accept()
+    tasks = []
+    try:
+        request = await asyncio.wait_for(websocket.receive_text(), 5)
+        if len(request) > 8192:
+            raise ValueError("NT4 connection request is too large.")
+        url, topics = nt4_request(json.loads(request))
+        relay = asyncio.create_task(relay_nt4(websocket, url, topics))
+        disconnected = asyncio.create_task(websocket.receive())
+        tasks = [relay, disconnected]
+        done, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+        if disconnected not in done:
+            await relay
+    except (WebSocketDisconnect, RuntimeError):
+        return
+    except (ValueError, OSError, WebSocketException, asyncio.TimeoutError) as error:
+        try:
+            message = str(error)[:200] or "The NT4 server did not respond."
+            await websocket.send_json({"kind": "error", "message": message})
+        except (WebSocketDisconnect, RuntimeError):
+            return
+    finally:
+        for task in tasks:
+            task.cancel()
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
+        try:
+            await websocket.close()
+        except (WebSocketDisconnect, RuntimeError):
+            pass
+
 
 async def broadcast(line: str):
     line = strip_ansi(line)

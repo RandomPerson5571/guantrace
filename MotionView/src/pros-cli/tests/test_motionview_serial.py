@@ -39,6 +39,26 @@ class MotionViewSerialDecoderTests(unittest.TestCase):
         decoder.STREAM_BUFFER.clear()
         decoder._reset_decoder_state()
 
+    def test_fragmented_drive_lab_terminal_records(self) -> None:
+        lines = b"GT1,100,41,sysid.left.volts,3.25\r\nGT1,101,42,sysid.right.volts,3.2\n"
+        decoded = "".join(decoder.decode_bytes_to_str(lines[i:i+7]) for i in range(0, len(lines), 7))
+        self.assertEqual(decoded, lines.decode("ascii"))
+
+    def test_drive_lab_records_inside_pros_stdout_frames(self) -> None:
+        packets = [
+            cobs_encode(b"soutGT1,100,41,sysid.left.volts,"),
+            cobs_encode(b"serrdiagnostic\n"),
+            cobs_encode(b"sout3.25\r\nGT1,101,42,drive.motor.1.rpm,-150\n"),
+        ]
+        wire = b"".join(packet + b"\0" for packet in packets)
+        for chunk_size in [1, 7, len(wire)]:
+            with self.subTest(chunk_size=chunk_size):
+                chunks = (wire[i:i + chunk_size] for i in range(0, len(wire), chunk_size))
+                self.assertEqual(
+                    "".join(decoder.decode_bytes_to_str(chunk) for chunk in chunks),
+                    "diagnostic\nGT1,100,41,sysid.left.volts,3.25\r\nGT1,101,42,drive.motor.1.rpm,-150\n",
+                )
+
     def decode_chunks(self, chunks) -> str:
         decoder.STREAM_BUFFER.clear()
         decoder._reset_decoder_state()

@@ -22,6 +22,7 @@ LAST_TIMESTAMP_WALL: Optional[float] = None
 TIMESTAMP_RESUME_PENDING = False
 STREAM_BUFFER = bytearray()
 MAX_STREAM_BUFFER_BYTES = 256 * 1024
+PROS_TEXT_BUFFERS = {topic: bytearray() for topic in (b"sout", b"serr", b"kdbg")}
 
 LEVELS = {
     0: "NONE",
@@ -65,6 +66,8 @@ def _reset_decoder_state() -> None:
     DEFAULT_ROSTER.clear()
     ELEVATED_ROSTER.clear()
     PENDING_ROSTER_EVENTS.clear()
+    for buffer in PROS_TEXT_BUFFERS.values():
+        buffer.clear()
     PENDING_ROSTER_EVENT_COUNT = 0
     LAST_TIMESTAMP_RAW = None
     TIMESTAMP_WRAP_OFFSET = 0
@@ -614,6 +617,26 @@ def _looks_like_text_line(chunk: bytes) -> bool:
     return all(ch in "\r\n\t" or ord(ch) >= 0x20 for ch in decoded)
 
 
+def _decode_pros_text_frame(frame: bytes, encoding: str, errors: str) -> Optional[str]:
+    # Stock PROS wraps stdout in COBS with a four-byte topic. A print can
+    # span multiple packets, and different topics can be interleaved.
+    topic = frame[1:5]
+    if topic not in PROS_TEXT_BUFFERS or frame[0] < 5:
+        return None
+    try:
+        payload = cobs_decode(frame)[4:]
+    except ValueError:
+        return None
+    buffer = PROS_TEXT_BUFFERS[topic]
+    buffer.extend(payload)
+    end = buffer.rfind(b"\n") + 1
+    text = _decode_text_chunk(bytes(buffer[:end]), encoding, errors)
+    del buffer[:end]
+    if len(buffer) > MAX_STREAM_BUFFER_BYTES:
+        buffer.clear()
+    return text
+
+
 def decode_bytes_to_str(data: Union[bytes, bytearray], encoding: str = "utf-8", errors: str = "strict") -> str:
     """
     Stream-aware decoder that can handle mixed ASCII terminal text and MVLib
@@ -654,7 +677,8 @@ def decode_bytes_to_str(data: Union[bytes, bytearray], encoding: str = "utf-8", 
             # instead of slicing the still-arriving frame in half. Printable
             # bytes alone cannot disambiguate a valid binary prefix.
             candidate = bytes(STREAM_BUFFER[:nl_idx + 1])
-            if not _could_be_binary_frame(STREAM_BUFFER) and _looks_like_text_line(candidate):
+            looks_like_pros = STREAM_BUFFER[0] >= 5 and bytes(STREAM_BUFFER[1:5]) in PROS_TEXT_BUFFERS
+            if not looks_like_pros and not _could_be_binary_frame(STREAM_BUFFER) and _looks_like_text_line(candidate):
                 del STREAM_BUFFER[:nl_idx + 1]
                 outputs.append(_decode_text_chunk(candidate, encoding, errors))
                 continue
@@ -665,6 +689,11 @@ def decode_bytes_to_str(data: Union[bytes, bytearray], encoding: str = "utf-8", 
             break
 
         frame = bytes(STREAM_BUFFER[:nul_idx])
+        pros_text = _decode_pros_text_frame(frame, encoding, errors) if frame else None
+        if pros_text is not None:
+            del STREAM_BUFFER[:nul_idx + 1]
+            outputs.append(pros_text)
+            continue
         parsed_frame = None
         try:
             parsed_frame = _parse_binary_frame(frame)
